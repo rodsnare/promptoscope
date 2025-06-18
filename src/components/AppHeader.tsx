@@ -3,11 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Settings2 } from 'lucide-react';
 import { SheetTrigger } from '@/components/ui/sheet';
 
-interface AppHeaderProps {
-  onConfigOpen: () => void;
-}
-
-const AppHeader: React.FC<AppHeaderProps> = ({ onConfigOpen }) => {
+// No props needed for SheetTrigger functionality as it's handled by parent Sheet
+const AppHeader: React.FC = () => {
   return (
     <header className="bg-primary/10 border-b border-primary/20 p-4 shadow-md sticky top-0 z-40 backdrop-blur-sm">
       <div className="container mx-auto flex justify-between items-center">
@@ -15,7 +12,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ onConfigOpen }) => {
           PromptEval Pro
         </h1>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" onClick={onConfigOpen} aria-label="Open configuration panel">
+          <Button variant="outline" size="icon" aria-label="Open configuration panel">
             <Settings2 className="h-5 w-5" />
           </Button>
         </SheetTrigger>

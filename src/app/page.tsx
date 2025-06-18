@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { compareResponses } from '@/ai/flows/compare-responses';
 import { evaluateResponse } from '@/ai/flows/evaluate-response';
 import type { AppConfig, ApiConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, BatchFileItem } from '@/types';
+import { Sheet } from '@/components/ui/sheet'; // Import Sheet
 
 const initialApiConfig: ApiConfig = {
   temperature: 0.7,
@@ -144,7 +145,6 @@ export default function Home() {
       setBatchResults([...results]); // Update results incrementally for UI responsiveness
     }
     
-    // setBatchResults(results); // Final set after loop (or rely on incremental)
     setBatchIsLoading(false);
      if (isClient) {
         toast({
@@ -157,13 +157,13 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <AppHeader onConfigOpen={() => setIsConfigPanelOpen(true)} />
-      <ConfigurationPanel
-        isOpen={isConfigPanelOpen}
-        onOpenChange={setIsConfigPanelOpen}
-        config={appConfig}
-        onConfigChange={setAppConfig}
-      />
+      <Sheet open={isConfigPanelOpen} onOpenChange={setIsConfigPanelOpen}>
+        <AppHeader />
+        <ConfigurationPanel
+          config={appConfig}
+          onConfigChange={setAppConfig}
+        />
+      </Sheet>
       
       <ModeSwitcher currentMode={mode} onModeChange={setMode} />
 

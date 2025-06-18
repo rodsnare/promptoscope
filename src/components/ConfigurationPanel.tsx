@@ -1,22 +1,26 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
-import type { AppConfig, ApiConfig } from '@/types';
+import { SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
+import type { AppConfig } from '@/types';
 
 interface ConfigurationPanelProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
   config: AppConfig;
   onConfigChange: (newConfig: AppConfig) => void;
 }
 
-const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ isOpen, onOpenChange, config, onConfigChange }) => {
+const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfigChange }) => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (name in config.apiConfig) {
@@ -33,14 +37,14 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ isOpen, onOpenC
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg md:max-w-xl flex flex-col" side="right">
-        <SheetHeader>
-          <SheetTitle className="font-headline">Configuration</SheetTitle>
-          <SheetDescription>
-            Adjust system instructions, prompt templates, and API parameters for evaluations.
-          </SheetDescription>
-        </SheetHeader>
+    <SheetContent className="w-full sm:max-w-lg md:max-w-xl flex flex-col" side="right">
+      <SheetHeader>
+        <SheetTitle className="font-headline">Configuration</SheetTitle>
+        <SheetDescription>
+          Adjust system instructions, prompt templates, and API parameters for evaluations.
+        </SheetDescription>
+      </SheetHeader>
+      {isClient ? (
         <ScrollArea className="flex-grow p-1 pr-6">
           <div className="space-y-6 py-4">
             <div>
@@ -129,13 +133,17 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ isOpen, onOpenC
             </div>
           </div>
         </ScrollArea>
-        <SheetFooter>
-          <SheetClose asChild>
-            <Button variant="outline">Close</Button>
-          </SheetClose>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      ) : (
+        <div className="flex-grow p-4">
+          <p>Loading configuration...</p>
+        </div>
+      )}
+      <SheetFooter>
+        <SheetClose asChild>
+          <Button variant="outline">Close</Button>
+        </SheetClose>
+      </SheetFooter>
+    </SheetContent>
   );
 };
 

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
+import { Label } from '@/components/ui/label'; // Import standard Label
 
 interface PromptInputFormProps {
   onSubmit: (prompt: string) => void;
@@ -41,10 +42,6 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({ onSubmit, isLoading }
   );
 };
 
-// Dummy Label to satisfy TS if @radix-ui/react-label is not directly used for this component's label
-const Label: React.FC<React.LabelHTMLAttributes<HTMLLabelElement>> = ({ children, ...props }) => (
-  <label {...props}>{children}</label>
-);
-
+// Removed local Label definition
 
 export default PromptInputForm;
