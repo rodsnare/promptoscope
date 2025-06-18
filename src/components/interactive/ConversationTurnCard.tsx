@@ -10,17 +10,8 @@ interface ConversationTurnCardProps {
 }
 
 const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => {
-  let displayUserPrompt: React.ReactNode = turn.userPrompt;
-  if (typeof turn.userPrompt === 'object' && turn.userPrompt !== null) {
-    console.warn(`ConversationTurnCard: turn.userPrompt is an object for ID ${turn.id}. Content:`, JSON.stringify(turn.userPrompt));
-    if (typeof (turn.userPrompt as any).prompt === 'string') {
-      displayUserPrompt = (turn.userPrompt as any).prompt;
-    } else {
-      displayUserPrompt = <span className="text-destructive italic">[Malformed User Prompt Object]</span>;
-    }
-  } else if (!turn.userPrompt) {
-    displayUserPrompt = <span className="text-muted-foreground italic">No user prompt</span>;
-  }
+  // turn.userPrompt is now guaranteed to be a string by page.tsx
+  const displayUserPrompt = turn.userPrompt || <span className="text-muted-foreground italic">No user prompt</span>;
 
   const renderPotentiallyObjectContent = (content: string | undefined, fieldName: string) => {
     if (typeof content === 'object' && content !== null) {

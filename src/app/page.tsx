@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -11,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { compareResponses } from '@/ai/flows/compare-responses';
 import { evaluateResponse } from '@/ai/flows/evaluate-response';
 import type { AppConfig, ApiConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, BatchFileItem } from '@/types';
-import { Sheet } from '@/components/ui/sheet'; // Import Sheet
+import { Sheet } from '@/components/ui/sheet';
 
 const initialApiConfig: ApiConfig = {
   temperature: 0.7,
@@ -39,22 +40,29 @@ export default function Home() {
   
   const { toast } = useToast();
 
-  // Effect to ensure client-side only access for toast.
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  const getCleanedPromptString = (promptInput: string | { prompt: string }): string => {
+    if (typeof promptInput === 'object' && promptInput !== null && 'prompt' in promptInput && typeof promptInput.prompt === 'string') {
+      return promptInput.prompt;
+    }
+    return String(promptInput); // Fallback to string coercion
+  };
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
     return template.replace(/\{\{prompt\}\}/g, userPrompt);
   };
 
-  const handleInteractiveSubmit = async (userPrompt: string) => {
+  const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
+    const userPromptString = getCleanedPromptString(userInput);
+
     try {
-      const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPrompt);
-      const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPrompt);
+      const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
+      const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptString);
 
       const responses = await compareResponses({
         promptA: fullPromptA,
@@ -64,14 +72,14 @@ export default function Home() {
       });
 
       const evaluationResult = await evaluateResponse({
-        prompt: userPrompt, // Original user prompt for evaluation context
+        prompt: userPromptString, 
         responseA: responses.responseA,
         responseB: responses.responseB,
       });
 
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
-        userPrompt,
+        userPrompt: userPromptString,
         responseA: responses.responseA,
         responseB: responses.responseB,
         evaluation: evaluationResult.evaluation,
@@ -94,16 +102,17 @@ export default function Home() {
 
   const handleProcessBatch = async (fileContent: BatchFileItem[]) => {
     setBatchIsLoading(true);
-    setBatchResults([]); // Clear previous results
+    setBatchResults([]); 
     setBatchProgress(0);
     const results: ProcessedBatchItem[] = [];
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
+      const userPromptString = getCleanedPromptString(item.prompt);
+
       try {
-        const userPrompt = item.prompt;
-        const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPrompt);
-        const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPrompt);
+        const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
+        const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptString);
 
         const responses = await compareResponses({
           promptA: fullPromptA,
@@ -113,13 +122,14 @@ export default function Home() {
         });
 
         const evaluationResult = await evaluateResponse({
-          prompt: userPrompt,
+          prompt: userPromptString,
           responseA: responses.responseA,
           responseB: responses.responseB,
         });
         
         results.push({
           ...item,
+          prompt: userPromptString, // Store the cleaned string
           responseA: responses.responseA,
           responseB: responses.responseB,
           evaluation: evaluationResult.evaluation,
@@ -130,6 +140,7 @@ export default function Home() {
         console.error(`Error processing batch item ${item.id}:`, error);
         results.push({
           ...item,
+          prompt: userPromptString, // Store the cleaned string even in error cases
           error: error instanceof Error ? error.message : "An unknown error occurred.",
           timestamp: new Date(),
         });
@@ -142,7 +153,7 @@ export default function Home() {
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]); // Update results incrementally for UI responsiveness
+      setBatchResults([...results]); 
     }
     
     setBatchIsLoading(false);

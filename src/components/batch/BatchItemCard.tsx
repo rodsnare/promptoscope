@@ -10,17 +10,8 @@ interface BatchItemCardProps {
 }
 
 const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
-  let displayPrompt: React.ReactNode = item.prompt;
-  if (typeof item.prompt === 'object' && item.prompt !== null) {
-    console.warn(`BatchItemCard: item.prompt is an object for ID ${item.id}. Content:`, JSON.stringify(item.prompt));
-    if (typeof (item.prompt as any).prompt === 'string') {
-      displayPrompt = (item.prompt as any).prompt;
-    } else {
-      displayPrompt = <span className="text-destructive italic">[Malformed Prompt Object]</span>;
-    }
-  } else if (!item.prompt) {
-    displayPrompt = <span className="text-muted-foreground italic">No prompt provided</span>;
-  }
+  // item.prompt is now guaranteed to be a string by page.tsx
+  const displayPrompt = item.prompt || <span className="text-muted-foreground italic">No prompt provided</span>;
 
   const renderPotentiallyObjectContent = (content: string | undefined, fieldName: string) => {
     if (typeof content === 'object' && content !== null) {
