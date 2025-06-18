@@ -6,67 +6,63 @@ import type { ProcessedBatchItem } from '@/types';
 import { Bot, FileText, CheckSquare, AlertTriangle } from 'lucide-react';
 
 // Helper to render AI-generated content (responseA, responseB, evaluation)
-const renderAIOutput = (content: any): JSX.Element => {
+const renderAIOutput = (content: any): string => {
+  if (typeof content === 'object' && content !== null && Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
+    return content.prompt || "No response";
+  }
   if (typeof content === 'string') {
-    return <>{content || <span className="text-muted-foreground italic">No response</span>}</>;
+    return content || "No response";
   }
   if (content === null || content === undefined) {
-    return <span className="text-muted-foreground italic">No response</span>;
+    return "No response";
   }
-  // Check if content is an object and has a 'prompt' property that is a string
-  if (typeof content === 'object' && Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
-    return <>{content.prompt || <span className="text-muted-foreground italic">Empty response value</span>}</>;
-  }
-  // Fallback for other types of objects or unhandled cases
-  // console.warn('renderAIOutput: Rendering placeholder for unexpected object structure:', JSON.stringify(content));
-  return <span className="text-destructive italic">[Object Content Received]</span>;
+  // console.warn('renderAIOutput: Rendering placeholder for unexpected structure:', JSON.stringify(content));
+  return "[Unsupported Content]";
 };
 
 // Helper to render item ID
-const renderItemID = (id: any): JSX.Element => {
+const renderItemID = (id: any): string => {
   if (typeof id === 'string' || typeof id === 'number') {
-    return <>{String(id)}</>;
+    return String(id);
+  }
+  if (typeof id === 'object' && id !== null && Object.prototype.hasOwnProperty.call(id, 'prompt') && typeof id.prompt === 'string') {
+    return id.prompt || "[Invalid ID format]";
   }
   if (id === null || id === undefined) {
-    return <span className="text-muted-foreground italic">No ID</span>;
+    return "No ID";
   }
-  // Check if id is an object and has a 'prompt' property that is a string
-  if (typeof id === 'object' && Object.prototype.hasOwnProperty.call(id, 'prompt') && typeof id.prompt === 'string') {
-    return <>{id.prompt || <span className="text-muted-foreground italic">Empty ID value</span>}</>;
-  }
-  // Fallback for other types of objects or unhandled cases
   // console.warn('renderItemID: Rendering placeholder for unexpected ID structure:', JSON.stringify(id));
-  return <span className="text-destructive italic">[Object ID]</span>;
+  return "[Invalid ID]";
 };
 
 // Helper to display the main batch item prompt
-const getDisplayableBatchPrompt = (promptInput: any): JSX.Element => {
-  // Prioritize checking for the specific object structure {prompt: "string"}
+const getDisplayableBatchPrompt = (promptInput: any): string => {
   if (typeof promptInput === 'object' && promptInput !== null && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string') {
-    return <>{promptInput.prompt || <span className="text-muted-foreground italic">No prompt provided</span>}</>;
+    return promptInput.prompt || "No prompt provided";
   }
-  // Then check if it's already a string
   if (typeof promptInput === 'string') {
-    return <>{promptInput || <span className="text-muted-foreground italic">No prompt provided</span>}</>;
+    return promptInput || "No prompt provided";
   }
-  // Handle other unexpected object structures or types
-  // console.warn('getDisplayableBatchPrompt: Rendering placeholder for unexpected object structure:', JSON.stringify(promptInput));
-  return <span className="text-destructive italic">[Invalid Prompt Format]</span>;
+  if (promptInput === null || promptInput === undefined) {
+    return "No prompt provided";
+  }
+  // console.warn('getDisplayableBatchPrompt: Rendering placeholder for unexpected prompt structure:', JSON.stringify(promptInput));
+  return "[Invalid Prompt Format]";
 };
 
 // Helper to render error content safely
-const renderErrorContent = (error: any): JSX.Element => {
+const renderErrorContent = (error: any): string => {
+  if (typeof error === 'object' && error !== null && Object.prototype.hasOwnProperty.call(error, 'prompt') && typeof error.prompt === 'string') {
+    return error.prompt || "Error occurred, no details.";
+  }
   if (typeof error === 'string') {
-    return <>{error || <span className="text-muted-foreground italic">Error occurred, no details.</span>}</>;
+    return error || "Error occurred, no details.";
   }
   if (error === null || error === undefined) {
-    return <span className="text-muted-foreground italic">Error occurred, no details.</span>;
-  }
-  if (typeof error === 'object' && Object.prototype.hasOwnProperty.call(error, 'prompt') && typeof error.prompt === 'string') {
-    return <>{`Details: ${error.prompt}`}</>;
+    return "Error occurred, no details.";
   }
   // console.warn('renderErrorContent: Rendering placeholder for unexpected error object structure:', JSON.stringify(error));
-  return <span className="text-destructive italic">[Malformed error details]</span>;
+  return "[Malformed error details]";
 };
 
 

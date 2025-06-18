@@ -5,39 +5,42 @@ import { Separator } from '@/components/ui/separator';
 import type { ConversationTurn } from '@/types';
 import { Bot, UserCircle, CheckSquare } from 'lucide-react';
 
-const renderAIOutput = (content: any): JSX.Element => {
+// Helper to render AI-generated content (responseA, responseB, evaluation)
+const renderAIOutput = (content: any): string => {
+  // Check if content is the specific object {prompt: "string_value"}
+  if (typeof content === 'object' && content !== null && Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
+    return content.prompt || "No response";
+  }
+  // Check if it's already a string
   if (typeof content === 'string') {
-    return <>{content || <span className="text-muted-foreground italic">No response</span>}</>;
+    return content || "No response";
   }
+  // Handle null or undefined
   if (content === null || content === undefined) {
-    return <><span className="text-muted-foreground italic">No response</span></>;
+    return "No response";
   }
-  if (typeof content === 'object') {
-    if (Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
-      return <>{content.prompt || <span className="text-muted-foreground italic">Empty prompt value</span>}</>;
-    }
-    // console.warn('renderAIOutput: Rendering placeholder for unexpected object structure:', JSON.stringify(content));
-    return <span className="text-destructive italic">[Object Content Received]</span>;
-  }
-  return <>{String(content)}</>; // For other primitives like boolean or number
+  // Fallback for other types (objects not matching the specific structure, numbers, booleans)
+  // console.warn('renderAIOutput: Rendering placeholder for unexpected structure:', JSON.stringify(content));
+  return "[Unsupported Content]";
 };
 
-const getDisplayableUserPrompt = (promptInput: any): JSX.Element => {
-  // Prioritize checking for the specific object structure
+// Helper to display the main user prompt
+const getDisplayableUserPrompt = (promptInput: any): string => {
+  // Priority: Check if promptInput is the specific object {prompt: "string_value"}
   if (typeof promptInput === 'object' && promptInput !== null && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string') {
-    return <>{promptInput.prompt || <span className="text-muted-foreground italic">No user prompt</span>}</>;
+    return promptInput.prompt || "No user prompt";
   }
-  // Then check if it's already a string
+  // Then, check if it's already a string
   if (typeof promptInput === 'string') {
-    return <>{promptInput || <span className="text-muted-foreground italic">No user prompt</span>}</>;
+    return promptInput || "No user prompt";
   }
-  // Handle other unexpected object structures
-  if (typeof promptInput === 'object' && promptInput !== null) {
-    // console.warn('getDisplayableUserPrompt: Rendering placeholder for unexpected object structure:', JSON.stringify(promptInput));
-    return <span className="text-destructive italic">[Invalid User Prompt Format]</span>;
+  // Handle null or undefined
+  if (promptInput === null || promptInput === undefined) {
+    return "No user prompt";
   }
-  // Fallback for null, undefined, or other types not explicitly handled
-  return <><span className="text-muted-foreground italic">No user prompt</span></>;
+  // Fallback for other types
+  // console.warn('getDisplayableUserPrompt: Rendering placeholder for unexpected prompt structure:', JSON.stringify(promptInput));
+  return "[Invalid User Prompt Format]";
 };
 
 interface ConversationTurnCardProps {
