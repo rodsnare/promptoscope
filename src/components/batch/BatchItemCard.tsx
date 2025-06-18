@@ -10,12 +10,28 @@ interface BatchItemCardProps {
 }
 
 const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
-  // item.prompt is now guaranteed to be a string by page.tsx
-  const displayPrompt = item.prompt || <span className="text-muted-foreground italic">No prompt provided</span>;
+  let displayPromptContent: string | JSX.Element;
+  const itemPromptValue = item.prompt;
 
-  const renderPotentiallyObjectContent = (content: string | undefined, fieldName: string) => {
+  if (typeof itemPromptValue === 'object' && itemPromptValue !== null && 'prompt' in itemPromptValue && typeof (itemPromptValue as any).prompt === 'string') {
+    displayPromptContent = (itemPromptValue as any).prompt;
+    if (!displayPromptContent) {
+      displayPromptContent = <span className="text-muted-foreground italic">No prompt provided</span>;
+    }
+  } else if (typeof itemPromptValue === 'string') {
+    displayPromptContent = itemPromptValue || <span className="text-muted-foreground italic">No prompt provided</span>;
+  } else {
+    console.warn(`BatchItemCard: item.prompt is an unexpected type for ID ${item.id}. Value:`, itemPromptValue);
+    displayPromptContent = <span className="text-muted-foreground italic">Invalid prompt format</span>;
+  }
+
+  const renderPotentiallyObjectContent = (content: any, fieldName: string) => {
     if (typeof content === 'object' && content !== null) {
-      console.warn(`BatchItemCard: item.${fieldName} is an object for ID ${item.id}. Content:`, JSON.stringify(content));
+      if ('prompt' in content && typeof content.prompt === 'string' && Object.keys(content).length === 1) {
+         console.warn(`BatchItemCard: item.${fieldName} was an object {prompt: string} for ID ${item.id}. Rendering inner prompt.`);
+        return content.prompt;
+      }
+      console.warn(`BatchItemCard: item.${fieldName} is an unexpected object for ID ${item.id}. Content:`, JSON.stringify(content));
       return <span className="text-destructive italic">[Malformed ${fieldName} Object]</span>;
     }
     return content || <span className="text-muted-foreground italic">No response</span>;
@@ -28,7 +44,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
           <FileText className="mr-2 h-5 w-5 text-primary" />
           Prompt ID: {item.id}
         </CardTitle>
-        <CardDescription className="pt-1 font-code text-sm">{displayPrompt}</CardDescription>
+        <CardDescription className="pt-1 font-code text-sm">{displayPromptContent}</CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-4">

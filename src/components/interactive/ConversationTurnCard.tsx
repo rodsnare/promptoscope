@@ -10,12 +10,29 @@ interface ConversationTurnCardProps {
 }
 
 const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => {
-  // turn.userPrompt is now guaranteed to be a string by page.tsx
-  const displayUserPrompt = turn.userPrompt || <span className="text-muted-foreground italic">No user prompt</span>;
+  let displayUserPromptContent: string | JSX.Element;
+  const userPromptValue = turn.userPrompt;
 
-  const renderPotentiallyObjectContent = (content: string | undefined, fieldName: string) => {
+  if (typeof userPromptValue === 'object' && userPromptValue !== null && 'prompt' in userPromptValue && typeof (userPromptValue as any).prompt === 'string') {
+    displayUserPromptContent = (userPromptValue as any).prompt;
+    if (!displayUserPromptContent) {
+      displayUserPromptContent = <span className="text-muted-foreground italic">No user prompt</span>;
+    }
+  } else if (typeof userPromptValue === 'string') {
+    displayUserPromptContent = userPromptValue || <span className="text-muted-foreground italic">No user prompt</span>;
+  } else {
+    // Fallback for other unexpected types, e.g. null, undefined, or other objects
+    console.warn(`ConversationTurnCard: turn.userPrompt is an unexpected type for ID ${turn.id}. Value:`, userPromptValue);
+    displayUserPromptContent = <span className="text-muted-foreground italic">Invalid user prompt format</span>;
+  }
+
+  const renderPotentiallyObjectContent = (content: any, fieldName: string) => {
     if (typeof content === 'object' && content !== null) {
-      console.warn(`ConversationTurnCard: turn.${fieldName} is an object for ID ${turn.id}. Content:`, JSON.stringify(content));
+      if ('prompt' in content && typeof content.prompt === 'string' && Object.keys(content).length === 1) {
+        console.warn(`ConversationTurnCard: item.${fieldName} was an object {prompt: string} for ID ${turn.id}. Rendering inner prompt.`);
+        return content.prompt;
+      }
+      console.warn(`ConversationTurnCard: item.${fieldName} is an unexpected object for ID ${turn.id}. Content:`, JSON.stringify(content));
       return <span className="text-destructive italic">[Malformed ${fieldName} Object]</span>;
     }
     return content || <span className="text-muted-foreground italic">No response</span>;
@@ -28,7 +45,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
           <UserCircle className="mr-2 h-5 w-5 text-primary" />
           User Prompt
         </CardTitle>
-        <CardDescription className="pt-1 font-code text-sm">{displayUserPrompt}</CardDescription>
+        <CardDescription className="pt-1 font-code text-sm">{displayUserPromptContent}</CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-4">
