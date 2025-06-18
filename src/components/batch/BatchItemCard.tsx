@@ -14,32 +14,25 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
   const displayPromptContent = item.prompt || <span className="text-muted-foreground italic">No prompt provided</span>;
 
   const renderPotentiallyObjectContent = (content: any, fieldName: string, itemId: string): string | JSX.Element => {
+    if (typeof content === 'object' && content !== null) {
+      if (content.hasOwnProperty('prompt') && typeof content.prompt === 'string') {
+        return content.prompt || <span className="text-muted-foreground italic">No response from prompt key</span>;
+      }
+      // Any other object (including {prompt: non_string_value} or {other_key: ...})
+      console.warn(`BatchItemCard: Field '${fieldName}' for ID ${itemId} is an object that cannot be directly rendered. Content:`, JSON.stringify(content));
+      return <span className="text-destructive italic">[Unsupported Object Structure in {fieldName}]</span>;
+    }
+
     if (typeof content === 'string') {
       return content || <span className="text-muted-foreground italic">No response</span>;
     }
 
-    if (typeof content === 'object' && content !== null) {
-      // Case 1: content has a 'prompt' key and its value is a string.
-      if (typeof content.prompt === 'string') {
-        return content.prompt || <span className="text-muted-foreground italic">No response from prompt key</span>;
-      }
-      // Case 2: content has a 'prompt' key, but its value is NOT a string.
-      if ('prompt' in content) {
-        console.warn(`BatchItemCard: Field '${fieldName}' for ID ${itemId} has a '.prompt' key, but its value is not a string. Value:`, JSON.stringify(content.prompt));
-        return <span className="text-destructive italic">[Malformed {fieldName} (prompt value not string)]</span>;
-      }
-      // Case 3: content is some other object (does not have a 'prompt' key, or previous conditions not met).
-      console.warn(`BatchItemCard: Field '${fieldName}' for ID ${itemId} is an unexpected object. Content:`, JSON.stringify(content));
-      return <span className="text-destructive italic">[Malformed {fieldName} Object]</span>;
-    }
-    
     if (content === null || content === undefined) {
-        return <span className="text-muted-foreground italic">No response</span>;
+      return <span className="text-muted-foreground italic">No response</span>;
     }
-    
-    // Fallback for other primitive types (boolean, number) by converting to string.
-    const stringifiedContent = String(content);
-    return stringifiedContent || <span className="text-muted-foreground italic">No response</span>;
+
+    // For other primitives like numbers or booleans
+    return String(content);
   };
 
   return (
@@ -56,6 +49,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
         {item.error ? (
           <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive flex items-center">
             <AlertTriangle className="h-5 w-5 mr-2" />
+            {/* item.error is expected to be a string from getSafeToastDescription */}
             <span>Error: {item.error}</span>
           </div>
         ) : (
