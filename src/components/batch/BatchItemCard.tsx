@@ -13,7 +13,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
   let displayPromptContent: string | JSX.Element;
   const itemPromptValue = item.prompt;
 
-  if (typeof itemPromptValue === 'object' && itemPromptValue !== null && 'prompt' in itemPromptValue && typeof (itemPromptValue as any).prompt === 'string') {
+  if (typeof itemPromptValue === 'object' && itemPromptValue !== null && 'prompt' in itemPromptValue && typeof (itemPromptValue as any).prompt === 'string' && Object.keys(itemPromptValue).length === 1) {
     displayPromptContent = (itemPromptValue as any).prompt;
     if (!displayPromptContent) {
       displayPromptContent = <span className="text-muted-foreground italic">No prompt provided</span>;
@@ -30,15 +30,31 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
       return content || <span className="text-muted-foreground italic">No response</span>;
     }
     if (typeof content === 'object' && content !== null) {
-      if ('prompt' in content && typeof content.prompt === 'string' && Object.keys(content).length === 1) {
-        console.warn(`BatchItemCard: item.${fieldName} was an object {prompt: string} for ID ${item.id}. Rendering inner prompt string.`);
-        return content.prompt;
+      // Specifically check for { prompt: "string_value" } and ONLY that key
+      if ('prompt' in content && typeof (content as any).prompt === 'string' && Object.keys(content).length === 1) {
+        const innerPrompt = (content as any).prompt;
+        // Ensure the inner 'prompt' value is definitely a string before returning
+        if (typeof innerPrompt === 'string') {
+          return innerPrompt || <span className="text-muted-foreground italic">No response</span>;
+        } else {
+          // This case should be rare if the above type check is correct, but as a safeguard:
+          console.warn(`BatchItemCard: Field ${fieldName} for ID ${item.id} has a .prompt key, but its value is not a string. Value:`, JSON.stringify(innerPrompt));
+          return <span className="text-destructive italic">[Malformed {fieldName} (inner value not string)]</span>;
+        }
       }
-      console.warn(`BatchItemCard: item.${fieldName} is an unexpected object for ID ${item.id}. Content:`, JSON.stringify(content));
-      return <span className="text-destructive italic">[Malformed ${fieldName} Object]</span>;
+      console.warn(`BatchItemCard: Field ${fieldName} for ID ${item.id} is an unexpected object. Content:`, JSON.stringify(content));
+      return <span className="text-destructive italic">[Malformed {fieldName} Object]</span>;
     }
-    // Handles null, undefined, numbers, booleans by attempting to convert to string or showing placeholder
-    return content?.toString() || <span className="text-muted-foreground italic">No response</span>;
+    
+    // Handles null, undefined by returning a placeholder JSX element
+    if (content === null || content === undefined) {
+        return <span className="text-muted-foreground italic">No response</span>;
+    }
+    
+    // For other primitives like numbers or booleans, attempt to convert to string.
+    // This also handles an empty string if content.toString() was empty but not null/undefined.
+    const stringifiedContent = String(content);
+    return stringifiedContent || <span className="text-muted-foreground italic">No response</span>;
   };
 
   return (
