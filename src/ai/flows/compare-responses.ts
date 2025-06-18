@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to compare responses from two different prompts or model configurations.
@@ -37,22 +38,25 @@ const compareResponsesFlow = ai.defineFlow(
     outputSchema: CompareResponsesOutputSchema,
   },
   async input => {
-    // Define a shared configuration object with optional parameters
-    const sharedConfig = {
+    // Define a model configuration object with optional parameters
+    const modelConfig = {
       temperature: input.temperature,
       topK: input.topK,
       maxOutputTokens: input.maxOutputTokens,
-      systemInstruction: input.systemInstruction
     };
+
+    const systemInstruction = input.systemInstruction;
 
     const [responseA, responseB] = await Promise.all([
       ai.generate({
         prompt: input.promptA,
-        config: sharedConfig,
+        config: modelConfig,
+        systemInstruction: systemInstruction,
       }).then(res => res.text),
       ai.generate({
         prompt: input.promptB,
-        config: sharedConfig,
+        config: modelConfig,
+        systemInstruction: systemInstruction,
       }).then(res => res.text),
     ]);
 
@@ -62,3 +66,4 @@ const compareResponsesFlow = ai.defineFlow(
     };
   }
 );
+
