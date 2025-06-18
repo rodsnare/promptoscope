@@ -25,16 +25,20 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
     displayPromptContent = <span className="text-muted-foreground italic">Invalid prompt format</span>;
   }
 
-  const renderPotentiallyObjectContent = (content: any, fieldName: string) => {
+  const renderPotentiallyObjectContent = (content: any, fieldName: string): string | JSX.Element => {
+    if (typeof content === 'string') {
+      return content || <span className="text-muted-foreground italic">No response</span>;
+    }
     if (typeof content === 'object' && content !== null) {
       if ('prompt' in content && typeof content.prompt === 'string' && Object.keys(content).length === 1) {
-         console.warn(`BatchItemCard: item.${fieldName} was an object {prompt: string} for ID ${item.id}. Rendering inner prompt.`);
+        console.warn(`BatchItemCard: item.${fieldName} was an object {prompt: string} for ID ${item.id}. Rendering inner prompt string.`);
         return content.prompt;
       }
       console.warn(`BatchItemCard: item.${fieldName} is an unexpected object for ID ${item.id}. Content:`, JSON.stringify(content));
       return <span className="text-destructive italic">[Malformed ${fieldName} Object]</span>;
     }
-    return content || <span className="text-muted-foreground italic">No response</span>;
+    // Handles null, undefined, numbers, booleans by attempting to convert to string or showing placeholder
+    return content?.toString() || <span className="text-muted-foreground italic">No response</span>;
   };
 
   return (
