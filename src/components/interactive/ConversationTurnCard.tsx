@@ -10,41 +10,26 @@ interface ConversationTurnCardProps {
 }
 
 const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => {
-  let displayUserPromptContent: string | JSX.Element;
-  const userPromptValue = turn.userPrompt;
+  // turn.userPrompt is expected to be a string due to getCleanedPromptString in page.tsx
+  const displayUserPromptContent = turn.userPrompt || <span className="text-muted-foreground italic">No user prompt</span>;
 
-  if (typeof userPromptValue === 'object' && userPromptValue !== null && 'prompt' in userPromptValue && typeof (userPromptValue as any).prompt === 'string' && Object.keys(userPromptValue).length === 1) {
-    displayUserPromptContent = (userPromptValue as any).prompt;
-    if (!displayUserPromptContent) {
-      displayUserPromptContent = <span className="text-muted-foreground italic">No user prompt</span>;
-    }
-  } else if (typeof userPromptValue === 'string') {
-    displayUserPromptContent = userPromptValue || <span className="text-muted-foreground italic">No user prompt</span>;
-  } else {
-    console.warn(`ConversationTurnCard: turn.userPrompt is an unexpected type for ID ${turn.id}. Value:`, userPromptValue);
-    displayUserPromptContent = <span className="text-muted-foreground italic">Invalid user prompt format</span>;
-  }
-
-  const renderPotentiallyObjectContent = (content: any, fieldName: string): string | JSX.Element => {
+  const renderPotentiallyObjectContent = (content: any, fieldName: string, turnId: string): string | JSX.Element => {
     if (typeof content === 'string') {
       return content || <span className="text-muted-foreground italic">No response</span>;
     }
+
     if (typeof content === 'object' && content !== null) {
-      // More aggressive check for {prompt: "string_value", ...anyOtherKeys}
+      // Case 1: content has a 'prompt' key and its value is a string.
       if (typeof content.prompt === 'string') {
-        return content.prompt || <span className="text-muted-foreground italic">No response</span>;
+        return content.prompt || <span className="text-muted-foreground italic">No response from prompt key</span>;
       }
-      // Original check for { prompt: "string_value" } AND ONLY that key (can be removed if above is sufficient, but kept for explicitness)
-      if ('prompt' in content && typeof (content as any).prompt === 'string' && Object.keys(content).length === 1) {
-        const innerPrompt = (content as any).prompt;
-        if (typeof innerPrompt === 'string') {
-          return innerPrompt || <span className="text-muted-foreground italic">No response</span>;
-        } else {
-          console.warn(`ConversationTurnCard: Field ${fieldName} for ID ${turn.id} has a .prompt key, but its value is not a string. Value:`, JSON.stringify(innerPrompt));
-          return <span className="text-destructive italic">[Malformed {fieldName} (inner value not string)]</span>;
-        }
+      // Case 2: content has a 'prompt' key, but its value is NOT a string.
+      if ('prompt' in content) {
+        console.warn(`ConversationTurnCard: Field '${fieldName}' for ID ${turnId} has a '.prompt' key, but its value is not a string. Value:`, JSON.stringify(content.prompt));
+        return <span className="text-destructive italic">[Malformed {fieldName} (prompt value not string)]</span>;
       }
-      console.warn(`ConversationTurnCard: Field ${fieldName} for ID ${turn.id} is an unexpected object. Content:`, JSON.stringify(content));
+      // Case 3: content is some other object (does not have a 'prompt' key, or previous conditions not met).
+      console.warn(`ConversationTurnCard: Field '${fieldName}' for ID ${turnId} is an unexpected object. Content:`, JSON.stringify(content));
       return <span className="text-destructive italic">[Malformed {fieldName} Object]</span>;
     }
 
@@ -52,6 +37,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
         return <span className="text-muted-foreground italic">No response</span>;
     }
 
+    // Fallback for other primitive types (boolean, number) by converting to string.
     const stringifiedContent = String(content);
     return stringifiedContent || <span className="text-muted-foreground italic">No response</span>;
   };
@@ -73,7 +59,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model A Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body">
-              {renderPotentiallyObjectContent(turn.responseA, 'responseA')}
+              {renderPotentiallyObjectContent(turn.responseA, 'responseA', turn.id)}
             </div>
           </div>
           <div>
@@ -81,7 +67,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model B Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body">
-              {renderPotentiallyObjectContent(turn.responseB, 'responseB')}
+              {renderPotentiallyObjectContent(turn.responseB, 'responseB', turn.id)}
             </div>
           </div>
         </div>
@@ -93,7 +79,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
             <CheckSquare className="mr-2 h-5 w-5" /> Evaluation
           </h3>
           <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body">
-            {renderPotentiallyObjectContent(turn.evaluation, 'evaluation')}
+            {renderPotentiallyObjectContent(turn.evaluation, 'evaluation', turn.id)}
           </div>
         </div>
       </CardContent>

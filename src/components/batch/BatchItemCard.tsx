@@ -10,41 +10,26 @@ interface BatchItemCardProps {
 }
 
 const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
-  let displayPromptContent: string | JSX.Element;
-  const itemPromptValue = item.prompt;
+  // item.prompt is expected to be a string due to getCleanedPromptString in page.tsx
+  const displayPromptContent = item.prompt || <span className="text-muted-foreground italic">No prompt provided</span>;
 
-  if (typeof itemPromptValue === 'object' && itemPromptValue !== null && 'prompt' in itemPromptValue && typeof (itemPromptValue as any).prompt === 'string' && Object.keys(itemPromptValue).length === 1) {
-    displayPromptContent = (itemPromptValue as any).prompt;
-    if (!displayPromptContent) {
-      displayPromptContent = <span className="text-muted-foreground italic">No prompt provided</span>;
-    }
-  } else if (typeof itemPromptValue === 'string') {
-    displayPromptContent = itemPromptValue || <span className="text-muted-foreground italic">No prompt provided</span>;
-  } else {
-    console.warn(`BatchItemCard: item.prompt is an unexpected type for ID ${item.id}. Value:`, itemPromptValue);
-    displayPromptContent = <span className="text-muted-foreground italic">Invalid prompt format</span>;
-  }
-
-  const renderPotentiallyObjectContent = (content: any, fieldName: string): string | JSX.Element => {
+  const renderPotentiallyObjectContent = (content: any, fieldName: string, itemId: string): string | JSX.Element => {
     if (typeof content === 'string') {
       return content || <span className="text-muted-foreground italic">No response</span>;
     }
+
     if (typeof content === 'object' && content !== null) {
-      // More aggressive check for {prompt: "string_value", ...anyOtherKeys}
+      // Case 1: content has a 'prompt' key and its value is a string.
       if (typeof content.prompt === 'string') {
-        return content.prompt || <span className="text-muted-foreground italic">No response</span>;
+        return content.prompt || <span className="text-muted-foreground italic">No response from prompt key</span>;
       }
-      // Original check for { prompt: "string_value" } AND ONLY that key (can be removed if above is sufficient, but kept for explicitness)
-      if ('prompt' in content && typeof (content as any).prompt === 'string' && Object.keys(content).length === 1) {
-        const innerPrompt = (content as any).prompt;
-        if (typeof innerPrompt === 'string') {
-          return innerPrompt || <span className="text-muted-foreground italic">No response</span>;
-        } else {
-          console.warn(`BatchItemCard: Field ${fieldName} for ID ${item.id} has a .prompt key, but its value is not a string. Value:`, JSON.stringify(innerPrompt));
-          return <span className="text-destructive italic">[Malformed {fieldName} (inner value not string)]</span>;
-        }
+      // Case 2: content has a 'prompt' key, but its value is NOT a string.
+      if ('prompt' in content) {
+        console.warn(`BatchItemCard: Field '${fieldName}' for ID ${itemId} has a '.prompt' key, but its value is not a string. Value:`, JSON.stringify(content.prompt));
+        return <span className="text-destructive italic">[Malformed {fieldName} (prompt value not string)]</span>;
       }
-      console.warn(`BatchItemCard: Field ${fieldName} for ID ${item.id} is an unexpected object. Content:`, JSON.stringify(content));
+      // Case 3: content is some other object (does not have a 'prompt' key, or previous conditions not met).
+      console.warn(`BatchItemCard: Field '${fieldName}' for ID ${itemId} is an unexpected object. Content:`, JSON.stringify(content));
       return <span className="text-destructive italic">[Malformed {fieldName} Object]</span>;
     }
     
@@ -52,6 +37,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
         return <span className="text-muted-foreground italic">No response</span>;
     }
     
+    // Fallback for other primitive types (boolean, number) by converting to string.
     const stringifiedContent = String(content);
     return stringifiedContent || <span className="text-muted-foreground italic">No response</span>;
   };
@@ -80,7 +66,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                   <Bot className="mr-2 h-5 w-5" /> Model A Response
                 </h3>
                 <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                  {renderPotentiallyObjectContent(item.responseA, 'responseA')}
+                  {renderPotentiallyObjectContent(item.responseA, 'responseA', item.id)}
                 </div>
               </div>
               <div>
@@ -88,7 +74,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                   <Bot className="mr-2 h-5 w-5" /> Model B Response
                 </h3>
                 <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                  {renderPotentiallyObjectContent(item.responseB, 'responseB')}
+                  {renderPotentiallyObjectContent(item.responseB, 'responseB', item.id)}
                 </div>
               </div>
             </div>
@@ -100,7 +86,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                 <CheckSquare className="mr-2 h-5 w-5" /> Evaluation
               </h3>
               <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                {renderPotentiallyObjectContent(item.evaluation, 'evaluation')}
+                {renderPotentiallyObjectContent(item.evaluation, 'evaluation', item.id)}
               </div>
             </div>
           </>
