@@ -5,38 +5,37 @@ import { Separator } from '@/components/ui/separator';
 import type { ProcessedBatchItem } from '@/types';
 import { Bot, FileText, CheckSquare, AlertTriangle } from 'lucide-react';
 
-interface BatchItemCardProps {
-  item: ProcessedBatchItem;
-}
-
-const renderPotentiallyObjectContent = (content: any, fieldName: string, itemId: string): string | JSX.Element => {
-    // 1. Handle direct strings
+const renderPotentiallyObjectContent = (content: any, fieldName: string, itemId: string | number): string | JSX.Element => {
     if (typeof content === 'string') {
       return content || <span className="text-muted-foreground italic">No response</span>;
     }
-
-    // 2. Handle null or undefined
     if (content === null || content === undefined) {
       return <span className="text-muted-foreground italic">No response</span>;
     }
-
-    // 3. Handle objects
     if (typeof content === 'object') {
-      // Specifically look for { prompt: "string_value" }
       if (content.hasOwnProperty('prompt') && typeof content.prompt === 'string') {
         return content.prompt || <span className="text-muted-foreground italic">No response from prompt key</span>;
       }
-      // ANY other object structure (including {prompt: <non-string>}, or objects without 'prompt')
       console.warn(
-        `renderPotentiallyObjectContent: Field '${fieldName}' for ID ${itemId} is an unexpected object or malformed prompt structure. Content:`,
+        `renderPotentiallyObjectContent: Field '${fieldName}' for ID ${String(itemId)} is an unexpected object. Content:`,
         JSON.stringify(content)
       );
       return <span className="text-destructive italic">[Invalid Content in {fieldName}]</span>;
     }
-
-    // 4. Handle other primitives (booleans, numbers) by converting to string
     return String(content);
 };
+
+const displayIdContent = (id: string | number | any): string | JSX.Element => {
+    if (typeof id === 'string' || typeof id === 'number') {
+      return String(id);
+    }
+    if (typeof id === 'object' && id !== null && id.hasOwnProperty('prompt') && typeof id.prompt === 'string') {
+      return id.prompt || <span className="text-muted-foreground italic">No ID in prompt key</span>;
+    }
+    console.warn(`BatchItemCard: item.id is an unexpected type or structure. ID:`, JSON.stringify(id));
+    return <span className="text-destructive italic">[Invalid ID]</span>;
+};
+
 
 const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
   const displayPromptContent = typeof item.prompt === 'string'
@@ -48,7 +47,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
       <CardHeader>
         <CardTitle className="flex items-center text-lg font-semibold">
           <FileText className="mr-2 h-5 w-5 text-primary" />
-          Prompt ID: {item.id}
+          Prompt ID: {displayIdContent(item.id)}
         </CardTitle>
         <CardDescription className="pt-1 font-code text-sm">{displayPromptContent}</CardDescription>
       </CardHeader>

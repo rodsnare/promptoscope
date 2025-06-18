@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useCallback, useState } from 'react';
@@ -5,9 +6,10 @@ import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { UploadCloud, FileJson, CheckCircle, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { BatchFileItem } from '@/types';
 
 interface FileUploadProps {
-  onFileUpload: (fileContent: any[]) => void;
+  onFileUpload: (fileContent: BatchFileItem[]) => void;
   isLoading: boolean;
 }
 
@@ -31,18 +33,23 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload, isLoading }) => {
           const json = JSON.parse(event.target?.result as string);
           if (!Array.isArray(json)) {
             setError('Invalid JSON format. Expected an array of objects.');
-            setUploadedFile(null); // Clear file if format is wrong
+            setUploadedFile(null); 
             return;
           }
-          // Add basic validation for expected keys (id, prompt)
-          const isValidFormat = json.every(item => typeof item.id !== 'undefined' && typeof item.prompt === 'string');
+          
+          const isValidFormat = json.every(item => 
+            item &&
+            (typeof item.id === 'string' || typeof item.id === 'number') &&
+            typeof item.prompt === 'string'
+          );
+
           if (!isValidFormat) {
-            setError('Invalid JSON structure. Each item must have an "id" and "prompt" (string).');
+            setError('Invalid JSON structure. Each item must have an "id" (string or number) and "prompt" (string).');
             setUploadedFile(null);
             return;
           }
 
-          onFileUpload(json);
+          onFileUpload(json as BatchFileItem[]);
 
         } catch (e) {
           setError('Failed to parse JSON file. Please ensure it is valid JSON.');
@@ -68,7 +75,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload, isLoading }) => {
           Upload Batch File
         </CardTitle>
         <CardDescription>
-          Upload a JSON file containing an array of prompts to evaluate. Each object in the array should have an "id" and a "prompt" field.
+          Upload a JSON file containing an array of prompts to evaluate. Each object in the array should have an "id" (string or number) and a "prompt" (string) field.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -101,7 +108,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload, isLoading }) => {
             <span>{error}</span>
           </div>
         )}
-        {/* The actual processing will be triggered by a button in BatchMode.tsx after file is staged */}
       </CardContent>
     </Card>
   );
