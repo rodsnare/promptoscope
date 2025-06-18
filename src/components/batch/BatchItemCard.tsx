@@ -5,37 +5,49 @@ import { Separator } from '@/components/ui/separator';
 import type { ProcessedBatchItem } from '@/types';
 import { Bot, FileText, CheckSquare, AlertTriangle } from 'lucide-react';
 
-const renderPotentiallyObjectContent = (content: any, fieldName: string, itemId: string | number): string | JSX.Element => {
-    if (typeof content === 'string') {
-      return content || <span className="text-muted-foreground italic">No response</span>;
+// Simplified and robust content renderer for AI outputs
+const renderAIOutput = (content: any): string | JSX.Element => {
+  if (typeof content === 'string') {
+    return content || <span className="text-muted-foreground italic">No response</span>;
+  }
+  if (content === null || content === undefined) {
+    return <span className="text-muted-foreground italic">No response</span>;
+  }
+  if (typeof content === 'object') {
+    if (Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
+      return content.prompt || <span className="text-muted-foreground italic">Empty prompt value</span>;
     }
-    if (content === null || content === undefined) {
-      return <span className="text-muted-foreground italic">No response</span>;
-    }
-    if (typeof content === 'object') {
-      if (content.hasOwnProperty('prompt') && typeof content.prompt === 'string') {
-        return content.prompt || <span className="text-muted-foreground italic">No response from prompt key</span>;
-      }
-      console.warn(
-        `renderPotentiallyObjectContent: Field '${fieldName}' for ID ${String(itemId)} is an unexpected object. Content:`,
-        JSON.stringify(content)
-      );
-      return <span className="text-destructive italic">[Invalid Content in {fieldName}]</span>;
-    }
-    return String(content);
+    // For any other object structure, or if content.prompt is not a string
+    console.warn('renderAIOutput: Rendering placeholder for unexpected object structure:', JSON.stringify(content));
+    return <span className="text-destructive italic">[Object Content Received]</span>;
+  }
+  // For other primitive types like boolean or number
+  return String(content);
 };
 
-const displayIdContent = (id: string | number | any): string | JSX.Element => {
-    if (typeof id === 'string' || typeof id === 'number') {
-      return String(id);
+// Simplified and robust renderer for item ID
+const renderItemID = (id: any): string | JSX.Element => {
+  if (typeof id === 'string' || typeof id === 'number') {
+    return String(id);
+  }
+  if (id === null || id === undefined) {
+    return <span className="text-muted-foreground italic">No ID</span>;
+  }
+  if (typeof id === 'object') {
+     if (Object.prototype.hasOwnProperty.call(id, 'prompt') && typeof id.prompt === 'string') {
+      return id.prompt || <span className="text-muted-foreground italic">Empty prompt value in ID</span>;
     }
-    if (typeof id === 'object' && id !== null && id.hasOwnProperty('prompt') && typeof id.prompt === 'string') {
-      return id.prompt || <span className="text-muted-foreground italic">No ID in prompt key</span>;
-    }
-    console.warn(`BatchItemCard: item.id is an unexpected type or structure. ID:`, JSON.stringify(id));
-    return <span className="text-destructive italic">[Invalid ID]</span>;
+    console.warn('renderItemID: Rendering placeholder for unexpected object ID:', JSON.stringify(id));
+    return <span className="text-destructive italic">[Object ID]</span>;
+  }
+  // For other primitive types that might be an ID (though unlikely)
+  return String(id);
 };
 
+
+interface BatchItemCardProps {
+  item: ProcessedBatchItem;
+}
 
 const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
   const displayPromptContent = typeof item.prompt === 'string'
@@ -47,16 +59,16 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
       <CardHeader>
         <CardTitle className="flex items-center text-lg font-semibold">
           <FileText className="mr-2 h-5 w-5 text-primary" />
-          Prompt ID: {displayIdContent(item.id)}
+          Prompt ID: {renderItemID(item.id)}
         </CardTitle>
-        <CardDescription className="pt-1 font-code text-sm">{displayPromptContent}</CardDescription>
+        <CardDescription className="pt-1 font-code text-sm whitespace-pre-wrap">{displayPromptContent}</CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-4">
         {item.error ? (
           <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive flex items-center">
             <AlertTriangle className="h-5 w-5 mr-2" />
-            <span>Error: {item.error}</span>
+            <span>Error: {item.error}</span> {/* item.error should be a string from getSafeToastDescription */}
           </div>
         ) : (
           <>
@@ -66,7 +78,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                   <Bot className="mr-2 h-5 w-5" /> Model A Response
                 </h3>
                 <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                  {renderPotentiallyObjectContent(item.responseA, 'responseA', item.id)}
+                  {renderAIOutput(item.responseA)}
                 </div>
               </div>
               <div>
@@ -74,7 +86,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                   <Bot className="mr-2 h-5 w-5" /> Model B Response
                 </h3>
                 <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                  {renderPotentiallyObjectContent(item.responseB, 'responseB', item.id)}
+                  {renderAIOutput(item.responseB)}
                 </div>
               </div>
             </div>
@@ -86,7 +98,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                 <CheckSquare className="mr-2 h-5 w-5" /> Evaluation
               </h3>
               <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                {renderPotentiallyObjectContent(item.evaluation, 'evaluation', item.id)}
+                {renderAIOutput(item.evaluation)}
               </div>
             </div>
           </>
