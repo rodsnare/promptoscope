@@ -5,24 +5,21 @@ import { Separator } from '@/components/ui/separator';
 import type { ConversationTurn } from '@/types';
 import { Bot, UserCircle, CheckSquare } from 'lucide-react';
 
-// Simplified and robust content renderer for AI outputs
-const renderAIOutput = (content: any): string | JSX.Element => {
+const renderAIOutput = (content: any): JSX.Element => {
   if (typeof content === 'string') {
-    return content || <span className="text-muted-foreground italic">No response</span>;
+    return <>{content || <span className="text-muted-foreground italic">No response</span>}</>;
   }
   if (content === null || content === undefined) {
     return <span className="text-muted-foreground italic">No response</span>;
   }
   if (typeof content === 'object') {
     if (Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
-      return content.prompt || <span className="text-muted-foreground italic">Empty prompt value</span>;
+      return <>{content.prompt || <span className="text-muted-foreground italic">Empty prompt value</span>}</>;
     }
-    // For any other object structure, or if content.prompt is not a string
     console.warn('renderAIOutput: Rendering placeholder for unexpected object structure:', JSON.stringify(content));
     return <span className="text-destructive italic">[Object Content Received]</span>;
   }
-  // For other primitive types like boolean or number
-  return String(content);
+  return <>{String(content)}</>;
 };
 
 interface ConversationTurnCardProps {

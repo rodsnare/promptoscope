@@ -5,43 +5,38 @@ import { Separator } from '@/components/ui/separator';
 import type { ProcessedBatchItem } from '@/types';
 import { Bot, FileText, CheckSquare, AlertTriangle } from 'lucide-react';
 
-// Simplified and robust content renderer for AI outputs
-const renderAIOutput = (content: any): string | JSX.Element => {
+const renderAIOutput = (content: any): JSX.Element => {
   if (typeof content === 'string') {
-    return content || <span className="text-muted-foreground italic">No response</span>;
+    return <>{content || <span className="text-muted-foreground italic">No response</span>}</>;
   }
   if (content === null || content === undefined) {
     return <span className="text-muted-foreground italic">No response</span>;
   }
   if (typeof content === 'object') {
     if (Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
-      return content.prompt || <span className="text-muted-foreground italic">Empty prompt value</span>;
+      return <>{content.prompt || <span className="text-muted-foreground italic">Empty prompt value</span>}</>;
     }
-    // For any other object structure, or if content.prompt is not a string
     console.warn('renderAIOutput: Rendering placeholder for unexpected object structure:', JSON.stringify(content));
     return <span className="text-destructive italic">[Object Content Received]</span>;
   }
-  // For other primitive types like boolean or number
-  return String(content);
+  return <>{String(content)}</>;
 };
 
-// Simplified and robust renderer for item ID
-const renderItemID = (id: any): string | JSX.Element => {
+const renderItemID = (id: any): JSX.Element => {
   if (typeof id === 'string' || typeof id === 'number') {
-    return String(id);
+    return <>{String(id)}</>;
   }
   if (id === null || id === undefined) {
     return <span className="text-muted-foreground italic">No ID</span>;
   }
   if (typeof id === 'object') {
-     if (Object.prototype.hasOwnProperty.call(id, 'prompt') && typeof id.prompt === 'string') {
-      return id.prompt || <span className="text-muted-foreground italic">Empty prompt value in ID</span>;
+    if (Object.prototype.hasOwnProperty.call(id, 'prompt') && typeof id.prompt === 'string') {
+      return <>{id.prompt || <span className="text-muted-foreground italic">Empty prompt value in ID</span>}</>;
     }
     console.warn('renderItemID: Rendering placeholder for unexpected object ID:', JSON.stringify(id));
     return <span className="text-destructive italic">[Object ID]</span>;
   }
-  // For other primitive types that might be an ID (though unlikely)
-  return String(id);
+  return <>{String(id)}</>;
 };
 
 
@@ -68,7 +63,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
         {item.error ? (
           <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive flex items-center">
             <AlertTriangle className="h-5 w-5 mr-2" />
-            <span>Error: {item.error}</span> {/* item.error should be a string from getSafeToastDescription */}
+            <span>Error: {item.error}</span>
           </div>
         ) : (
           <>
