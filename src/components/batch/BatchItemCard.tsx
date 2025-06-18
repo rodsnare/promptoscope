@@ -30,14 +30,16 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
       return content || <span className="text-muted-foreground italic">No response</span>;
     }
     if (typeof content === 'object' && content !== null) {
-      // Specifically check for { prompt: "string_value" } and ONLY that key
+      // More aggressive check for {prompt: "string_value", ...anyOtherKeys}
+      if (typeof content.prompt === 'string') {
+        return content.prompt || <span className="text-muted-foreground italic">No response</span>;
+      }
+      // Original check for { prompt: "string_value" } AND ONLY that key (can be removed if above is sufficient, but kept for explicitness)
       if ('prompt' in content && typeof (content as any).prompt === 'string' && Object.keys(content).length === 1) {
         const innerPrompt = (content as any).prompt;
-        // Ensure the inner 'prompt' value is definitely a string before returning
         if (typeof innerPrompt === 'string') {
           return innerPrompt || <span className="text-muted-foreground italic">No response</span>;
         } else {
-          // This case should be rare if the above type check is correct, but as a safeguard:
           console.warn(`BatchItemCard: Field ${fieldName} for ID ${item.id} has a .prompt key, but its value is not a string. Value:`, JSON.stringify(innerPrompt));
           return <span className="text-destructive italic">[Malformed {fieldName} (inner value not string)]</span>;
         }
@@ -46,13 +48,10 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
       return <span className="text-destructive italic">[Malformed {fieldName} Object]</span>;
     }
     
-    // Handles null, undefined by returning a placeholder JSX element
     if (content === null || content === undefined) {
         return <span className="text-muted-foreground italic">No response</span>;
     }
     
-    // For other primitives like numbers or booleans, attempt to convert to string.
-    // This also handles an empty string if content.toString() was empty but not null/undefined.
     const stringifiedContent = String(content);
     return stringifiedContent || <span className="text-muted-foreground italic">No response</span>;
   };
