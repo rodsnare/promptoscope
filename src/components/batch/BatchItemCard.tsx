@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -9,6 +10,26 @@ interface BatchItemCardProps {
 }
 
 const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
+  let displayPrompt: React.ReactNode = item.prompt;
+  if (typeof item.prompt === 'object' && item.prompt !== null) {
+    console.warn(`BatchItemCard: item.prompt is an object for ID ${item.id}. Content:`, JSON.stringify(item.prompt));
+    if (typeof (item.prompt as any).prompt === 'string') {
+      displayPrompt = (item.prompt as any).prompt;
+    } else {
+      displayPrompt = <span className="text-destructive italic">[Malformed Prompt Object]</span>;
+    }
+  } else if (!item.prompt) {
+    displayPrompt = <span className="text-muted-foreground italic">No prompt provided</span>;
+  }
+
+  const renderPotentiallyObjectContent = (content: string | undefined, fieldName: string) => {
+    if (typeof content === 'object' && content !== null) {
+      console.warn(`BatchItemCard: item.${fieldName} is an object for ID ${item.id}. Content:`, JSON.stringify(content));
+      return <span className="text-destructive italic">[Malformed ${fieldName} Object]</span>;
+    }
+    return content || <span className="text-muted-foreground italic">No response</span>;
+  };
+
   return (
     <Card className="mb-6 shadow-lg bg-card/80 backdrop-blur-sm">
       <CardHeader>
@@ -16,7 +37,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
           <FileText className="mr-2 h-5 w-5 text-primary" />
           Prompt ID: {item.id}
         </CardTitle>
-        <CardDescription className="pt-1 font-code text-sm">{item.prompt}</CardDescription>
+        <CardDescription className="pt-1 font-code text-sm">{displayPrompt}</CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-4">
@@ -33,7 +54,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                   <Bot className="mr-2 h-5 w-5" /> Model A Response
                 </h3>
                 <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                  {item.responseA || <span className="text-muted-foreground italic">No response</span>}
+                  {renderPotentiallyObjectContent(item.responseA, 'responseA')}
                 </div>
               </div>
               <div>
@@ -41,7 +62,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                   <Bot className="mr-2 h-5 w-5" /> Model B Response
                 </h3>
                 <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                  {item.responseB || <span className="text-muted-foreground italic">No response</span>}
+                  {renderPotentiallyObjectContent(item.responseB, 'responseB')}
                 </div>
               </div>
             </div>
@@ -53,7 +74,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                 <CheckSquare className="mr-2 h-5 w-5" /> Evaluation
               </h3>
               <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                {item.evaluation || <span className="text-muted-foreground italic">Not evaluated</span>}
+                {renderPotentiallyObjectContent(item.evaluation, 'evaluation')}
               </div>
             </div>
           </>

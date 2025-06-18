@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -9,6 +10,26 @@ interface ConversationTurnCardProps {
 }
 
 const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => {
+  let displayUserPrompt: React.ReactNode = turn.userPrompt;
+  if (typeof turn.userPrompt === 'object' && turn.userPrompt !== null) {
+    console.warn(`ConversationTurnCard: turn.userPrompt is an object for ID ${turn.id}. Content:`, JSON.stringify(turn.userPrompt));
+    if (typeof (turn.userPrompt as any).prompt === 'string') {
+      displayUserPrompt = (turn.userPrompt as any).prompt;
+    } else {
+      displayUserPrompt = <span className="text-destructive italic">[Malformed User Prompt Object]</span>;
+    }
+  } else if (!turn.userPrompt) {
+    displayUserPrompt = <span className="text-muted-foreground italic">No user prompt</span>;
+  }
+
+  const renderPotentiallyObjectContent = (content: string | undefined, fieldName: string) => {
+    if (typeof content === 'object' && content !== null) {
+      console.warn(`ConversationTurnCard: turn.${fieldName} is an object for ID ${turn.id}. Content:`, JSON.stringify(content));
+      return <span className="text-destructive italic">[Malformed ${fieldName} Object]</span>;
+    }
+    return content || <span className="text-muted-foreground italic">No response</span>;
+  };
+
   return (
     <Card className="mb-6 shadow-lg bg-card/80 backdrop-blur-sm">
       <CardHeader>
@@ -16,7 +37,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
           <UserCircle className="mr-2 h-5 w-5 text-primary" />
           User Prompt
         </CardTitle>
-        <CardDescription className="pt-1 font-code text-sm">{turn.userPrompt}</CardDescription>
+        <CardDescription className="pt-1 font-code text-sm">{displayUserPrompt}</CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-4">
@@ -26,7 +47,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model A Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body">
-              {turn.responseA || <span className="text-muted-foreground italic">No response</span>}
+              {renderPotentiallyObjectContent(turn.responseA, 'responseA')}
             </div>
           </div>
           <div>
@@ -34,7 +55,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model B Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body">
-              {turn.responseB || <span className="text-muted-foreground italic">No response</span>}
+              {renderPotentiallyObjectContent(turn.responseB, 'responseB')}
             </div>
           </div>
         </div>
@@ -46,7 +67,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
             <CheckSquare className="mr-2 h-5 w-5" /> Evaluation
           </h3>
           <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body">
-            {turn.evaluation || <span className="text-muted-foreground italic">Not evaluated</span>}
+            {renderPotentiallyObjectContent(turn.evaluation, 'evaluation')}
           </div>
         </div>
       </CardContent>
