@@ -19,17 +19,25 @@ const renderAIOutput = (content: any): JSX.Element => {
     // console.warn('renderAIOutput: Rendering placeholder for unexpected object structure:', JSON.stringify(content));
     return <span className="text-destructive italic">[Object Content Received]</span>;
   }
-  return <>{String(content)}</>;
+  return <>{String(content)}</>; // For other primitives like boolean or number
 };
 
-const getDisplayableUserPrompt = (prompt: any): JSX.Element => {
-  if (typeof prompt === 'string') {
-    return <>{prompt || <span className="text-muted-foreground italic">No user prompt</span>}</>;
+const getDisplayableUserPrompt = (promptInput: any): JSX.Element => {
+  // Prioritize checking for the specific object structure
+  if (typeof promptInput === 'object' && promptInput !== null && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string') {
+    return <>{promptInput.prompt || <span className="text-muted-foreground italic">No user prompt</span>}</>;
   }
-  if (typeof prompt === 'object' && prompt !== null && Object.prototype.hasOwnProperty.call(prompt, 'prompt') && typeof prompt.prompt === 'string') {
-    return <>{prompt.prompt || <span className="text-muted-foreground italic">No user prompt</span>}</>;
+  // Then check if it's already a string
+  if (typeof promptInput === 'string') {
+    return <>{promptInput || <span className="text-muted-foreground italic">No user prompt</span>}</>;
   }
-  return <span className="text-destructive italic">[Invalid User Prompt Format]</span>;
+  // Handle other unexpected object structures
+  if (typeof promptInput === 'object' && promptInput !== null) {
+    // console.warn('getDisplayableUserPrompt: Rendering placeholder for unexpected object structure:', JSON.stringify(promptInput));
+    return <span className="text-destructive italic">[Invalid User Prompt Format]</span>;
+  }
+  // Fallback for null, undefined, or other types not explicitly handled
+  return <><span className="text-muted-foreground italic">No user prompt</span></>;
 };
 
 interface ConversationTurnCardProps {
