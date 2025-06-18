@@ -9,31 +9,39 @@ interface BatchItemCardProps {
   item: ProcessedBatchItem;
 }
 
-const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
-  // item.prompt is expected to be a string due to getCleanedPromptString in page.tsx
-  const displayPromptContent = item.prompt || <span className="text-muted-foreground italic">No prompt provided</span>;
-
-  const renderPotentiallyObjectContent = (content: any, fieldName: string, itemId: string): string | JSX.Element => {
-    if (typeof content === 'object' && content !== null) {
-      if (content.hasOwnProperty('prompt') && typeof content.prompt === 'string') {
-        return content.prompt || <span className="text-muted-foreground italic">No response from prompt key</span>;
-      }
-      // Any other object (including {prompt: non_string_value} or {other_key: ...})
-      console.warn(`BatchItemCard: Field '${fieldName}' for ID ${itemId} is an object that cannot be directly rendered. Content:`, JSON.stringify(content));
-      return <span className="text-destructive italic">[Unsupported Object Structure in {fieldName}]</span>;
-    }
-
+const renderPotentiallyObjectContent = (content: any, fieldName: string, itemId: string): string | JSX.Element => {
+    // 1. Handle direct strings
     if (typeof content === 'string') {
       return content || <span className="text-muted-foreground italic">No response</span>;
     }
 
+    // 2. Handle null or undefined
     if (content === null || content === undefined) {
       return <span className="text-muted-foreground italic">No response</span>;
     }
 
-    // For other primitives like numbers or booleans
+    // 3. Handle objects
+    if (typeof content === 'object') {
+      // Specifically look for { prompt: "string_value" }
+      if (content.hasOwnProperty('prompt') && typeof content.prompt === 'string') {
+        return content.prompt || <span className="text-muted-foreground italic">No response from prompt key</span>;
+      }
+      // ANY other object structure (including {prompt: <non-string>}, or objects without 'prompt')
+      console.warn(
+        `renderPotentiallyObjectContent: Field '${fieldName}' for ID ${itemId} is an unexpected object or malformed prompt structure. Content:`,
+        JSON.stringify(content)
+      );
+      return <span className="text-destructive italic">[Invalid Content in {fieldName}]</span>;
+    }
+
+    // 4. Handle other primitives (booleans, numbers) by converting to string
     return String(content);
-  };
+};
+
+const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
+  const displayPromptContent = typeof item.prompt === 'string'
+    ? item.prompt || <span className="text-muted-foreground italic">No prompt provided</span>
+    : <span className="text-destructive italic">[Invalid Prompt Format]</span>;
 
   return (
     <Card className="mb-6 shadow-lg bg-card/80 backdrop-blur-sm">
@@ -49,7 +57,6 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
         {item.error ? (
           <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive flex items-center">
             <AlertTriangle className="h-5 w-5 mr-2" />
-            {/* item.error is expected to be a string from getSafeToastDescription */}
             <span>Error: {item.error}</span>
           </div>
         ) : (
