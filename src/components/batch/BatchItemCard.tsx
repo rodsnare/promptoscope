@@ -10,13 +10,13 @@ const renderAIOutput = (content: any): JSX.Element => {
     return <>{content || <span className="text-muted-foreground italic">No response</span>}</>;
   }
   if (content === null || content === undefined) {
-    return <span className="text-muted-foreground italic">No response</span>;
+    return <><span className="text-muted-foreground italic">No response</span></>;
   }
   if (typeof content === 'object') {
     if (Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
       return <>{content.prompt || <span className="text-muted-foreground italic">Empty prompt value</span>}</>;
     }
-    console.warn('renderAIOutput: Rendering placeholder for unexpected object structure:', JSON.stringify(content));
+    // console.warn('renderAIOutput: Rendering placeholder for unexpected object structure:', JSON.stringify(content));
     return <span className="text-destructive italic">[Object Content Received]</span>;
   }
   return <>{String(content)}</>;
@@ -27,28 +27,33 @@ const renderItemID = (id: any): JSX.Element => {
     return <>{String(id)}</>;
   }
   if (id === null || id === undefined) {
-    return <span className="text-muted-foreground italic">No ID</span>;
+    return <><span className="text-muted-foreground italic">No ID</span></>;
   }
   if (typeof id === 'object') {
     if (Object.prototype.hasOwnProperty.call(id, 'prompt') && typeof id.prompt === 'string') {
       return <>{id.prompt || <span className="text-muted-foreground italic">Empty prompt value in ID</span>}</>;
     }
-    console.warn('renderItemID: Rendering placeholder for unexpected object ID:', JSON.stringify(id));
+    // console.warn('renderItemID: Rendering placeholder for unexpected object ID:', JSON.stringify(id));
     return <span className="text-destructive italic">[Object ID]</span>;
   }
   return <>{String(id)}</>;
 };
 
+const getDisplayableBatchPrompt = (prompt: any): JSX.Element => {
+  if (typeof prompt === 'string') {
+    return <>{prompt || <span className="text-muted-foreground italic">No prompt provided</span>}</>;
+  }
+  if (typeof prompt === 'object' && prompt !== null && Object.prototype.hasOwnProperty.call(prompt, 'prompt') && typeof prompt.prompt === 'string') {
+    return <>{prompt.prompt || <span className="text-muted-foreground italic">No prompt provided</span>}</>;
+  }
+  return <span className="text-destructive italic">[Invalid Prompt Format]</span>;
+};
 
 interface BatchItemCardProps {
   item: ProcessedBatchItem;
 }
 
 const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
-  const displayPromptContent = typeof item.prompt === 'string'
-    ? item.prompt || <span className="text-muted-foreground italic">No prompt provided</span>
-    : <span className="text-destructive italic">[Invalid Prompt Format]</span>;
-
   return (
     <Card className="mb-6 shadow-lg bg-card/80 backdrop-blur-sm">
       <CardHeader>
@@ -56,7 +61,9 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
           <FileText className="mr-2 h-5 w-5 text-primary" />
           Prompt ID: {renderItemID(item.id)}
         </CardTitle>
-        <CardDescription className="pt-1 font-code text-sm whitespace-pre-wrap">{displayPromptContent}</CardDescription>
+        <CardDescription className="pt-1 font-code text-sm whitespace-pre-wrap">
+          {getDisplayableBatchPrompt(item.prompt)}
+        </CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-4">
