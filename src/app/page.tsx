@@ -45,12 +45,33 @@ export default function Home() {
     setIsClient(true);
   }, []);
 
-  const getCleanedPromptString = (promptInput: string | { prompt: string }): string => {
+  const getCleanedPromptString = (promptInput: any): string => {
     if (typeof promptInput === 'object' && promptInput !== null && 'prompt' in promptInput && typeof promptInput.prompt === 'string') {
       return promptInput.prompt;
     }
-    return String(promptInput); // Fallback to string coercion
+    if (promptInput === null || promptInput === undefined) {
+      return "";
+    }
+    return String(promptInput);
   };
+  
+  const getSafeToastDescription = (error: any): string => {
+    if (error instanceof Error) {
+      if (typeof error.message === 'string') return error.message;
+      try {
+        return JSON.stringify(error.message);
+      } catch {
+        return "Failed to stringify error message object.";
+      }
+    }
+    if (typeof error === 'string') return error;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "An unknown error occurred.";
+    }
+  };
+
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
     return template.replace(/\{\{prompt\}\}/g, userPrompt);
@@ -93,7 +114,7 @@ export default function Home() {
         toast({
           variant: "destructive",
           title: "Evaluation Error",
-          description: error instanceof Error ? error.message : "An unknown error occurred.",
+          description: getSafeToastDescription(error),
         });
       }
     }
@@ -129,7 +150,7 @@ export default function Home() {
         
         results.push({
           ...item,
-          prompt: userPromptString, // Store the cleaned string
+          prompt: userPromptString, 
           responseA: responses.responseA,
           responseB: responses.responseB,
           evaluation: evaluationResult.evaluation,
@@ -140,15 +161,15 @@ export default function Home() {
         console.error(`Error processing batch item ${item.id}:`, error);
         results.push({
           ...item,
-          prompt: userPromptString, // Store the cleaned string even in error cases
-          error: error instanceof Error ? error.message : "An unknown error occurred.",
+          prompt: userPromptString, 
+          error: getSafeToastDescription(error), // Store safe string here too
           timestamp: new Date(),
         });
         if (isClient) {
            toast({
             variant: "destructive",
             title: `Error processing item ${item.id}`,
-            description: error instanceof Error ? error.message : "An unknown error occurred.",
+            description: getSafeToastDescription(error),
           });
         }
       }
@@ -206,3 +227,4 @@ export default function Home() {
     </div>
   );
 }
+
