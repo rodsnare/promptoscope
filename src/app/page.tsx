@@ -65,13 +65,13 @@ function getCleanedPromptString(promptInput: any): string {
     Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
     typeof promptInput.prompt === 'string'
   ) {
-    return promptInput.prompt || ""; 
+    return promptInput.prompt || "";
   }
   
   if (typeof promptInput === 'object' && promptInput !== null) {
     return "[Invalid Prompt Structure]";
   }
-  return String(promptInput); 
+  return String(promptInput);
 }
 
 
@@ -80,7 +80,7 @@ function ensureStringContent(content: any, defaultString: string = "No content p
     return defaultString;
   }
   if (typeof content === 'string') {
-    return content || defaultString; 
+    return content || defaultString;
   }
   if (typeof content === 'number' || typeof content === 'boolean') {
     return String(content);
@@ -92,7 +92,7 @@ function ensureStringContent(content: any, defaultString: string = "No content p
     Object.prototype.hasOwnProperty.call(content, 'prompt') &&
     typeof content.prompt === 'string'
   ) {
-    return content.prompt || defaultString; 
+    return content.prompt || defaultString;
   }
   
   if (typeof content === 'object' && content !== null) {
@@ -108,7 +108,7 @@ function ensureStringContent(content: any, defaultString: string = "No content p
         return "[Unstringifiable Object Content]";
       }
   }
-  return String(content) || defaultString; 
+  return String(content) || defaultString;
 }
 
 
@@ -120,7 +120,7 @@ const getSafeToastDescription = (error: any): string => {
   if (typeof error === 'number' || typeof error === 'boolean') return String(error);
 
   let potentialMessageSource = error;
-  if (error instanceof Error && typeof error.message === 'string') { 
+  if (error instanceof Error && typeof error.message === 'string') {
     potentialMessageSource = error.message;
   }
   
@@ -136,7 +136,7 @@ const getSafeToastDescription = (error: any): string => {
     }
     
     const nestedPrompt = findNestedPromptString(potentialMessageSource);
-    if (nestedPrompt !== null && typeof nestedPrompt === 'string') { 
+    if (nestedPrompt !== null && typeof nestedPrompt === 'string') {
       return nestedPrompt || "Error: Empty nested prompt in error object.";
     }
     
@@ -169,7 +169,7 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
   }
   if (typeof value === 'object') {
     if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, 'prompt') && typeof value.prompt === 'string') {
-      return value.prompt || `[${fieldName}: EMPTY_PROMPT_IN_OBJECT]`; 
+      return value.prompt || `[${fieldName}: EMPTY_PROMPT_IN_OBJECT]`;
     }
     const keys = Object.keys(value);
     if (keys.length === 0) {
@@ -189,14 +189,15 @@ const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): strin
     return ""; // Config textareas should be empty if value is null/undefined
   }
   // Check for the specific problematic object {prompt: "string"}
-  if (typeof value === 'object' && 
-      Object.prototype.hasOwnProperty.call(value, 'prompt') && 
+  if (typeof value === 'object' &&
+      value !== null && // Ensure value is not null before accessing properties
+      Object.prototype.hasOwnProperty.call(value, 'prompt') &&
       typeof value.prompt === 'string' &&
       Object.keys(value).length === 1) {
     return value.prompt || `[${fieldNameForPlaceholder}_HAD_EMPTY_PROMPT_IN_OBJECT]`;
   }
   // For any other object type, return a placeholder
-  if (typeof value === 'object') {
+  if (typeof value === 'object' && value !== null) {
     const keys = Object.keys(value);
     return `[${fieldNameForPlaceholder}_WAS_UNEXPECTED_OBJECT_TYPE (keys: ${keys.join(', ')})]`;
   }
@@ -230,8 +231,8 @@ export default function Home() {
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
     
-    let cleanedUserInput = getCleanedPromptString(userInput); 
-    let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserInput, 'UserPrompt');
+    let cleanedUserInput = getCleanedPromptString(userInput);
+    let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserInput, 'UserPrompt_Interactive');
 
     try {
       const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
@@ -244,21 +245,21 @@ export default function Home() {
         ...appConfig.apiConfig,
       });
 
-      let finalResponseA = forceStringOrVerySpecificPlaceholder(responses.responseA, 'ResponseA');
-      let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'ResponseB');
+      let finalResponseA = forceStringOrVerySpecificPlaceholder(responses.responseA, 'ResponseA_Interactive');
+      let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'ResponseB_Interactive');
       
       const evaluationResult = await evaluateResponse({
-        prompt: userPromptForState, 
-        responseA: finalResponseA, 
-        responseB: finalResponseB, 
+        prompt: userPromptForState,
+        responseA: finalResponseA,
+        responseB: finalResponseB,
       });
       
-      let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation');
+      let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation_Interactive');
 
-      if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = `[FINAL_OVERRIDE_USER_PROMPT_WAS_OBJECT (${Object.keys(userPromptForState).join(',')})]`;
-      if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_RESPONSE_A_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
-      if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = `[FINAL_OVERRIDE_RESPONSE_B_WAS_OBJECT (${Object.keys(finalResponseB).join(',')})]`;
-      if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = `[FINAL_OVERRIDE_EVALUATION_WAS_OBJECT (${Object.keys(finalEvaluation).join(',')})]`;
+      if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = `[FINAL_OVERRIDE_USER_PROMPT_INTERACTIVE_WAS_OBJECT (${Object.keys(userPromptForState).join(',')})]`;
+      if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_RESPONSE_A_INTERACTIVE_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
+      if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = `[FINAL_OVERRIDE_RESPONSE_B_INTERACTIVE_WAS_OBJECT (${Object.keys(finalResponseB).join(',')})]`;
+      if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = `[FINAL_OVERRIDE_EVALUATION_INTERACTIVE_WAS_OBJECT (${Object.keys(finalEvaluation).join(',')})]`;
       
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
@@ -291,9 +292,9 @@ export default function Home() {
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
       
-      let cleanedItemPrompt = getCleanedPromptString(item.prompt); 
-      let promptForState = forceStringOrVerySpecificPlaceholder(cleanedItemPrompt, 'BatchItemPrompt'); 
-      let itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID'); 
+      let cleanedItemPrompt = getCleanedPromptString(item.prompt);
+      let promptForState = forceStringOrVerySpecificPlaceholder(cleanedItemPrompt, 'Prompt_BatchItem');
+      let itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'ID_BatchItem');
 
       try {
         const fullPromptA = interpolatePrompt(appConfig.promptATemplate, promptForState);
@@ -306,16 +307,16 @@ export default function Home() {
           ...appConfig.apiConfig,
         });
         
-        let finalResponseA = forceStringOrVerySpecificPlaceholder(responses.responseA, 'BatchResponseA');
-        let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'BatchResponseB');
+        let finalResponseA = forceStringOrVerySpecificPlaceholder(responses.responseA, 'ResponseA_BatchItem');
+        let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'ResponseB_BatchItem');
 
         const evaluationResult = await evaluateResponse({
-          prompt: promptForState, 
+          prompt: promptForState,
           responseA: finalResponseA,
           responseB: finalResponseB,
         });
 
-        let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'BatchEvaluation');
+        let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation_BatchItem');
         
         if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
         if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
@@ -325,7 +326,7 @@ export default function Home() {
         
         results.push({
           id: itemIdForState,
-          prompt: promptForState, 
+          prompt: promptForState,
           responseA: finalResponseA,
           responseB: finalResponseB,
           evaluation: finalEvaluation,
@@ -333,29 +334,29 @@ export default function Home() {
         });
 
       } catch (error) {
-        let errorDescriptionAttempt = getSafeToastDescription(error); 
-        let errorDescriptionForState = forceStringOrVerySpecificPlaceholder(errorDescriptionAttempt, 'BatchItemErrorDescription');
+        let errorDescriptionAttempt = getSafeToastDescription(error);
+        let errorDescriptionForState = forceStringOrVerySpecificPlaceholder(errorDescriptionAttempt, 'ErrorDesc_BatchItem');
 
         if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
         if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
         if (typeof errorDescriptionForState === 'object' && errorDescriptionForState !== null) errorDescriptionForState = `[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT (${Object.keys(errorDescriptionForState).join(',')})]`;
         
         results.push({
-          id: itemIdForState, 
+          id: itemIdForState,
           prompt: promptForState,
-          error: errorDescriptionForState, 
+          error: errorDescriptionForState,
           timestamp: new Date(),
         });
         if (isClient) {
            toast({
             variant: "destructive",
-            title: `Error processing item ${itemIdForState}`, 
-            description: errorDescriptionForState, 
+            title: `Error processing item ${itemIdForState}`,
+            description: errorDescriptionForState,
           });
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]); 
+      setBatchResults([...results]);
     }
 
     setBatchIsLoading(false);
@@ -367,24 +368,49 @@ export default function Home() {
       }
   };
 
-  // Create a sanitized version of appConfig specifically for the ConfigurationPanel
   const sanitizedAppConfigForPanel: AppConfig = {
-    ...appConfig, // Spread the original appConfig
+    ...appConfig,
     systemInstruction: getSafeConfigString(appConfig.systemInstruction, 'SystemInstruction'),
     promptATemplate: getSafeConfigString(appConfig.promptATemplate, 'PromptATemplate'),
     promptBTemplate: getSafeConfigString(appConfig.promptBTemplate, 'PromptBTemplate'),
-    // apiConfig is an object, but its properties are numbers and are handled correctly by Input type="number"
-    // So, no need to sanitize apiConfig itself, unless its sub-properties could also become problematic objects
   };
+
+  if (isConfigPanelOpen && isClient) { // Added isClient check for console logs
+    console.log("--- DEBUG: CONFIG PANEL STATE ---");
+    console.log("Raw appConfig:", JSON.stringify(appConfig, null, 2));
+    console.log("Sanitized appConfig for panel:", JSON.stringify(sanitizedAppConfigForPanel, null, 2));
+    console.log("Type of sanitized systemInstruction:", typeof sanitizedAppConfigForPanel.systemInstruction, "Value:", sanitizedAppConfigForPanel.systemInstruction);
+    console.log("Type of sanitized promptATemplate:", typeof sanitizedAppConfigForPanel.promptATemplate, "Value:", sanitizedAppConfigForPanel.promptATemplate);
+    console.log("Type of sanitized promptBTemplate:", typeof sanitizedAppConfigForPanel.promptBTemplate, "Value:", sanitizedAppConfigForPanel.promptBTemplate);
+    console.log("---------------------------------");
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Sheet open={isConfigPanelOpen} onOpenChange={setIsConfigPanelOpen}>
         <AppHeader />
+        {/* TEMPORARY DEBUGGING: Replace ConfigurationPanel with simple text display */}
+        {isConfigPanelOpen && isClient && ( // Conditionally render debug info
+            <div style={{ padding: '20px', background: 'lightyellow', border: '1px solid orange', margin: '10px' }}>
+                <h3 style={{color: 'black'}}>Temporary Debug Output:</h3>
+                <p style={{color: 'black'}}>System Instruction Type: {typeof sanitizedAppConfigForPanel.systemInstruction}</p>
+                <p style={{color: 'black'}}>System Instruction Value: {JSON.stringify(sanitizedAppConfigForPanel.systemInstruction)}</p>
+                <hr style={{margin: '10px 0'}} />
+                <p style={{color: 'black'}}>Prompt A Template Type: {typeof sanitizedAppConfigForPanel.promptATemplate}</p>
+                <p style={{color: 'black'}}>Prompt A Template Value: {JSON.stringify(sanitizedAppConfigForPanel.promptATemplate)}</p>
+                <hr style={{margin: '10px 0'}} />
+                <p style={{color: 'black'}}>Prompt B Template Type: {typeof sanitizedAppConfigForPanel.promptBTemplate}</p>
+                <p style={{color: 'black'}}>Prompt B Template Value: {JSON.stringify(sanitizedAppConfigForPanel.promptBTemplate)}</p>
+                <hr style={{margin: '10px 0'}} />
+                <p style={{color: 'black'}}>API Config: {JSON.stringify(sanitizedAppConfigForPanel.apiConfig)}</p>
+            </div>
+        )}
+        {/* Original ConfigurationPanel -  commented out for debugging
         <ConfigurationPanel
-          config={sanitizedAppConfigForPanel} // Pass the sanitized version
+          config={sanitizedAppConfigForPanel}
           onConfigChange={setAppConfig}
         />
+        */}
       </Sheet>
 
       <ModeSwitcher currentMode={mode} onModeChange={setMode} />
@@ -417,4 +443,3 @@ export default function Home() {
     </div>
   );
 }
-
