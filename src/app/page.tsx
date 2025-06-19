@@ -39,7 +39,6 @@ function findNestedPromptString(obj: any): string | null {
 
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      // Check only own properties and avoid excessive depth for performance/safety
       if (typeof obj[key] === 'object' && obj[key] !== null) {
          const nestedResult = findNestedPromptString(obj[key]);
          if (nestedResult !== null) {
@@ -53,6 +52,7 @@ function findNestedPromptString(obj: any): string | null {
 
 const getCleanedPromptString = (promptInput: any): string => {
   let result: string;
+
   if (promptInput === null || promptInput === undefined) {
     result = "";
   } else if (typeof promptInput === 'string') {
@@ -60,15 +60,16 @@ const getCleanedPromptString = (promptInput: any): string => {
   } else if (typeof promptInput === 'number' || typeof promptInput === 'boolean') {
     result = String(promptInput);
   } else if (typeof promptInput === 'object') {
-    const nestedPrompt = findNestedPromptString(promptInput);
-    if (nestedPrompt !== null) {
-      result = nestedPrompt;
+    // Prioritize direct check for {prompt: "string_value"}
+    if (Object.keys(promptInput).length === 1 && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string') {
+      result = promptInput.prompt;
     } else {
-      // Explicitly check the {prompt: "string"} case again here for safety, though findNestedPromptString should catch it.
-      if (Object.keys(promptInput).length === 1 && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string') {
-        result = promptInput.prompt;
+      // Fallback to recursive search for other object structures
+      const nestedPrompt = findNestedPromptString(promptInput);
+      if (nestedPrompt !== null) {
+        result = nestedPrompt;
       } else {
-        result = "[Invalid Prompt Structure]";
+        result = "[Invalid Prompt Structure]"; // Placeholder if no usable prompt string found
       }
     }
   } else {
@@ -77,7 +78,6 @@ const getCleanedPromptString = (promptInput: any): string => {
 
   // Final safety: ensure we are not returning an object by mistake.
   if (typeof result === 'object' && result !== null) {
-      // This should ideally not be reached if logic above is correct.
       return "[Internal Sanitization Error: Prompt]";
   }
   return result;
@@ -86,21 +86,24 @@ const getCleanedPromptString = (promptInput: any): string => {
 
 const ensureStringContent = (content: any, defaultString: string = "No content provided"): string => {
   let result: string;
+
   if (content === null || content === undefined) {
     result = defaultString;
   } else if (typeof content === 'string') {
-    result = content || defaultString; // Use default if string is empty
+    result = content || defaultString;
   } else if (typeof content === 'number' || typeof content === 'boolean') {
     result = String(content);
   } else if (typeof content === 'object') {
-    const nestedPrompt = findNestedPromptString(content);
-    if (nestedPrompt !== null) {
-      result = nestedPrompt || defaultString; // Use default if nested string is empty
+    // Prioritize direct check for {prompt: "string_value"}
+    if (Object.keys(content).length === 1 && Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
+      result = content.prompt || defaultString;
     } else {
-      // Explicitly check the {prompt: "string"} case again
-      if (Object.keys(content).length === 1 && Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
-        result = content.prompt || defaultString;
+      // Fallback to recursive search
+      const nestedPrompt = findNestedPromptString(content);
+      if (nestedPrompt !== null) {
+        result = nestedPrompt || defaultString;
       } else {
+        // If no direct 'prompt' string found, try to stringify as a last resort for objects
         try {
           const str = JSON.stringify(content);
           if (str === '{}') {
@@ -114,10 +117,10 @@ const ensureStringContent = (content: any, defaultString: string = "No content p
       }
     }
   } else {
-    result = String(content);
+    result = String(content); // Fallback for other types
   }
 
-  // Final safety
+  // Final safety check
   if (typeof result === 'object' && result !== null) {
     return "[Internal Sanitization Error: Content]";
   }
@@ -127,6 +130,7 @@ const ensureStringContent = (content: any, defaultString: string = "No content p
 
 const getSafeToastDescription = (error: any): string => {
   let result: string;
+
   if (error === null || error === undefined) {
     result = "An unknown error occurred.";
   } else if (typeof error === 'string') {
@@ -136,14 +140,20 @@ const getSafeToastDescription = (error: any): string => {
   } else if (error instanceof Error) {
     let messageToDisplay: string | null = null;
     if (typeof error.message === 'object' && error.message !== null) {
-        messageToDisplay = findNestedPromptString(error.message);
+        // Prioritize direct check for error.message being {prompt: "..."}
+        if (Object.keys(error.message).length === 1 && Object.prototype.hasOwnProperty.call(error.message, 'prompt') && typeof error.message.prompt === 'string') {
+            messageToDisplay = error.message.prompt;
+        } else {
+            messageToDisplay = findNestedPromptString(error.message);
+        }
     }
     
     if (messageToDisplay !== null) {
-        result = messageToDisplay; // findNestedPromptString already returns string or null
+        result = messageToDisplay;
     } else if (typeof error.message === 'string') {
         result = error.message;
-    } else { // error.message was an object but no prompt string found
+    } else { 
+        // error.message was an object but no usable prompt string found
         try {
             const stringifiedMessage = JSON.stringify(error.message);
             result = stringifiedMessage === '{}' ? "[Empty Error Message Object]" : stringifiedMessage;
@@ -152,30 +162,33 @@ const getSafeToastDescription = (error: any): string => {
         }
     }
   } else if (typeof error === 'object') {
-    const nestedPrompt = findNestedPromptString(error);
-    if (nestedPrompt !== null) {
-      result = nestedPrompt;
+    // Prioritize direct check for error itself being {prompt: "..."}
+    if (Object.keys(error).length === 1 && Object.prototype.hasOwnProperty.call(error, 'prompt') && typeof error.prompt === 'string') {
+        result = error.prompt;
     } else {
-        if (Object.keys(error).length === 1 && Object.prototype.hasOwnProperty.call(error, 'prompt') && typeof error.prompt === 'string') {
-            result = error.prompt;
+        // Fallback to findNestedPromptString for other object structures
+        const nestedPrompt = findNestedPromptString(error);
+        if (nestedPrompt !== null) {
+          result = nestedPrompt;
         } else {
-            try {
-                const stringifiedError = JSON.stringify(error);
-                result = stringifiedError === '{}' ? "[Empty Error Object]" : stringifiedError;
-            } catch {
-                result = "Failed to stringify error object.";
-            }
+          // If still no direct 'prompt' string found, try to stringify
+          try {
+            const stringifiedError = JSON.stringify(error);
+            result = stringifiedError === '{}' ? "[Empty Error Object]" : stringifiedError;
+          } catch {
+            result = "Failed to stringify error object.";
+          }
         }
     }
   } else {
-    result = "An unknown error occurred."; // Should not be reached if previous cases are exhaustive
+    result = "An unknown error occurred."; 
   }
 
-  // Final safety: ensure we are not returning an object by mistake, and ensure a non-empty string.
+  // Final safety checks
   if (typeof result === 'object' && result !== null) {
       return "[Internal Sanitization Error: Toast]";
   }
-  return result || "An unknown error occurred."; // Fallback for empty or falsy strings
+  return result || "An unknown error occurred."; 
 };
 
 
@@ -225,7 +238,7 @@ export default function Home() {
 
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
-        userPrompt: userPromptString, // Already cleaned by getCleanedPromptString
+        userPrompt: userPromptString,
         responseA: ensureStringContent(responses.responseA, "No response from Model A"),
         responseB: ensureStringContent(responses.responseB, "No response from Model B"),
         evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
@@ -273,8 +286,8 @@ export default function Home() {
         });
 
         results.push({
-          id: item.id, 
-          prompt: userPromptString, // Already cleaned
+          id: String(item.id), // Ensure id is a string for consistency in ProcessedBatchItem
+          prompt: userPromptString, 
           responseA: ensureStringContent(responses.responseA, "No response from Model A"),
           responseB: ensureStringContent(responses.responseB, "No response from Model B"),
           evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
@@ -283,15 +296,15 @@ export default function Home() {
 
       } catch (error) {
         results.push({
-          id: item.id,
-          prompt: userPromptString, // Already cleaned
-          error: getSafeToastDescription(error), // Ensure error description is a safe string
+          id: String(item.id), // Ensure id is a string
+          prompt: userPromptString, 
+          error: getSafeToastDescription(error),
           timestamp: new Date(),
         });
         if (isClient) {
            toast({
             variant: "destructive",
-            title: `Error processing item ${ensureStringContent(String(item.id), "Unknown ID")}`, // ensureStringContent for item.id as well
+            title: `Error processing item ${getCleanedPromptString(String(item.id))}`,
             description: getSafeToastDescription(error),
           });
         }
@@ -350,3 +363,4 @@ export default function Home() {
     </div>
   );
 }
+
