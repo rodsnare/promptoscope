@@ -100,7 +100,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="systemInstruction"
                 name="systemInstruction"
-                value={systemInstructionValue}
+                value={ensureStringForConfig(config.systemInstruction, 'config.systemInstruction_for_textarea')}
                 onChange={handleInputChange}
                 placeholder="e.g., You are a helpful AI assistant."
                 className="mt-1 min-h-[100px] font-code"
@@ -108,9 +108,18 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               />
             </div> */}
 
-
             <div>
-              <p>This is a simple test for Prompt A section.</p>
+              <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
+              <Textarea
+                id="promptATemplate"
+                name="promptATemplate"
+                value={String(config.promptATemplate ?? "")}
+                onChange={handleInputChange}
+                placeholder="e.g., User query: {{prompt}}. Respond as Model A."
+                className="mt-1 min-h-[100px] font-code"
+                rows={4}
+              />
+               <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p>
             </div>
 
             {/*
@@ -119,7 +128,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="promptBTemplate"
                 name="promptBTemplate"
-                value={promptBTemplateValue}
+                value={ensureStringForConfig(config.promptBTemplate, 'config.promptBTemplate_for_textarea')}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model B, more creatively."
                 className="mt-1 min-h-[100px] font-code"
@@ -190,3 +199,4 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 
 export default ConfigurationPanel;
     
+
