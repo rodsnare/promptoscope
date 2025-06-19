@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { compareResponses } from '@/ai/flows/compare-responses';
 import { evaluateResponse } from '@/ai/flows/evaluate-response';
 import type { AppConfig, ApiConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, BatchFileItem } from '@/types';
-import { Sheet, SheetContent } from '@/components/ui/sheet'; // Import SheetContent
+import { Sheet } from '@/components/ui/sheet';
 
 const initialApiConfig: ApiConfig = {
   temperature: 0.7,
@@ -190,13 +190,14 @@ const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): strin
   }
   // Check for the specific problematic object {prompt: "string"}
   if (typeof value === 'object' &&
+      value !== null && // Added null check for safety
       Object.prototype.hasOwnProperty.call(value, 'prompt') &&
       typeof value.prompt === 'string' &&
       Object.keys(value).length === 1) {
     return value.prompt || `[${fieldNameForPlaceholder}_HAD_EMPTY_PROMPT_IN_OBJECT]`;
   }
   // For any other object type, return a placeholder
-  if (typeof value === 'object') { 
+  if (typeof value === 'object' && value !== null) { // Added null check
     const keys = Object.keys(value);
     if (keys.length === 0) {
       return `[${fieldNameForPlaceholder}_WAS_EMPTY_OBJECT]`;
@@ -396,19 +397,10 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-background">
       <Sheet open={isConfigPanelOpen} onOpenChange={setIsConfigPanelOpen}>
         <AppHeader />
-        {/* TEMPORARY DEBUGGING: Render minimal SheetContent */}
-        {isConfigPanelOpen && isClient && (
-          <SheetContent>
-            <p style={{ color: 'black', padding: '20px' }}>Minimal Content Test</p>
-          </SheetContent>
-        )}
-        {/* 
-        Original ConfigurationPanel - commented out for debugging
         <ConfigurationPanel
           config={sanitizedAppConfigForPanel}
           onConfigChange={setAppConfig}
-        /> 
-        */}
+        />
       </Sheet>
 
       <ModeSwitcher currentMode={mode} onModeChange={setMode} />
@@ -441,5 +433,6 @@ export default function Home() {
     </div>
   );
 }
+    
 
     
