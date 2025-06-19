@@ -110,16 +110,16 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 
             <div>
               <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
-              <Textarea
+              {/* <Textarea
                 id="promptATemplate"
                 name="promptATemplate"
-                value={String(config.promptATemplate ?? "")}
+                value={String(config.promptATemplate ?? "")} 
                 onChange={handleInputChange}
                 placeholder="e.g., User query: {{prompt}}. Respond as Model A."
                 className="mt-1 min-h-[100px] font-code"
                 rows={4}
               />
-               <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p>
+               <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p> */}
             </div>
 
             {/*
@@ -199,4 +199,3 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 
 export default ConfigurationPanel;
     
-
