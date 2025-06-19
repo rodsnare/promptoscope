@@ -197,7 +197,6 @@ export default function Home() {
   }, []);
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
-    // Ensure userPrompt is a string before interpolation
     const safeUserPrompt = typeof userPrompt === 'string' ? userPrompt : '[Invalid User Prompt for Interpolation]';
     return template.replace(/\{\{prompt\}\}/g, safeUserPrompt);
   };
@@ -263,7 +262,7 @@ export default function Home() {
     setBatchProgress(0);
     const results: ProcessedBatchItem[] = [];
 
-    for (let i = 0; i < fileContent.length; i++) {
+    for (let i = 0;0 && i < fileContent.length; i++) {
       const item = fileContent[i];
       
       let userPromptForState = getCleanedPromptString(item.prompt);
@@ -332,7 +331,7 @@ export default function Home() {
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]); // Update results incrementally
+      setBatchResults([...results]); 
     }
 
     setBatchIsLoading(false);
@@ -396,3 +395,6 @@ export default function Home() {
 
     
 
+
+
+    
