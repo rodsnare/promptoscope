@@ -97,11 +97,6 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
     }
   };
 
-  // const systemInstructionValue = ensureStringForConfig(config.systemInstruction, 'config.systemInstruction_for_textarea');
-  // const promptATemplateValue = ensureStringForConfig(config.promptATemplate, 'config.promptATemplate_for_textarea');
-  // const promptBTemplateValue = ensureStringForConfig(config.promptBTemplate, 'config.promptBTemplate_for_textarea');
-
-
   return (
     <SheetContent className="w-full sm:max-w-lg md:max-w-xl flex flex-col" side="right">
       <SheetHeader>
@@ -113,18 +108,19 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
       {isClient ? (
         <ScrollArea className="flex-grow p-1 pr-6">
           <div className="space-y-6 py-4">
-            {/* <div>
+            <div>
               <Label htmlFor="systemInstruction" className="text-lg font-semibold">System Instruction</Label>
               <Textarea
                 id="systemInstruction"
                 name="systemInstruction"
-                value={systemInstructionValue}
+                value={String(config.systemInstruction ?? "")}
                 onChange={handleInputChange}
                 placeholder="e.g., You are a helpful AI assistant."
                 className="mt-1 min-h-[100px] font-code"
                 rows={4}
               />
-            </div> */}
+               <p className="text-sm text-muted-foreground mt-1">Define the overall behavior and persona for the AI models.</p>
+            </div>
 
             <div>
               <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
@@ -137,16 +133,16 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                 className="mt-1 min-h-[100px] font-code"
                 rows={4}
               />
-               {/* <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p> */}
+               <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p>
             </div>
-
+            
             {/*
             <div>
               <Label htmlFor="promptBTemplate" className="text-lg font-semibold">Prompt B Template</Label>
               <Textarea
                 id="promptBTemplate"
                 name="promptBTemplate"
-                value={promptBTemplateValue}
+                value={String(config.promptBTemplate ?? "")}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model B, more creatively."
                 className="mt-1 min-h-[100px] font-code"
