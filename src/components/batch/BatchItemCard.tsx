@@ -5,57 +5,36 @@ import { Separator } from '@/components/ui/separator';
 import type { ProcessedBatchItem } from '@/types';
 import { Bot, FileText, CheckSquare, AlertTriangle } from 'lucide-react';
 
-// Helper for AI responses, evaluation - expects data to be stringified in page.tsx
-const renderPreCleanedString = (content: string | undefined | null, defaultText: string = "N/A"): string => {
-  // Assumes content is already a string due to ensureStringContent in page.tsx
-  return content || defaultText;
+const renderContentSafely = (content: any, defaultText: string = "N/A"): string => {
+  if (typeof content === 'string') {
+    return content || defaultText;
+  }
+  if (typeof content === 'number' || typeof content === 'boolean') {
+    return String(content);
+  }
+  if (content === null || content === undefined) {
+    return defaultText;
+  }
+  if (typeof content === 'object' &&
+      Object.prototype.hasOwnProperty.call(content, 'prompt') &&
+      typeof content.prompt === 'string') {
+    // console.warn('renderContentSafely (Batch): Extracting from {prompt: string} object.');
+    return content.prompt || defaultText;
+  }
+  if (typeof content === 'object') {
+    // console.warn('renderContentSafely (Batch): Attempting to stringify complex object.');
+    try {
+      const str = JSON.stringify(content);
+      if (str === '{}') return '[Empty Object]';
+      return str;
+    } catch (e) {
+      // console.error('renderContentSafely (Batch): Failed to stringify object.', e);
+      return '[Unstringifiable Object]';
+    }
+  }
+  // console.warn('renderContentSafely (Batch): Encountered unexpected type, converting to string:', typeof content);
+  return String(content);
 };
-
-// Helper for error field - expects data to be stringified in page.tsx
-const renderErrorContent = (content: string | undefined | null, defaultText: string = "N/A"): string => {
-  // Assumes content is already a string due to ensureStringContent in page.tsx
-  return content || defaultText;
-};
-
-
-// Robust helper for Item ID as it comes from file upload
-const renderItemID = (idInput: any): string => {
-  if (typeof idInput === 'string' || typeof idInput === 'number') {
-    return String(idInput);
-  }
-  if (idInput === null || idInput === undefined) {
-    return "No ID";
-  }
-  // Explicitly handle {prompt: "string_value"} where 'prompt' is the ONLY key
-  if (typeof idInput === 'object' && idInput !== null &&
-      Object.keys(idInput).length === 1 &&
-      idInput.hasOwnProperty('prompt') &&
-      typeof idInput.prompt === 'string') {
-    return idInput.prompt || "No ID";
-  }
-  // console.warn('renderItemID: Rendering placeholder for unexpected ID structure:', JSON.stringify(idInput));
-  return "[Invalid ID Format]";
-};
-
-// Robust helper for the main batch item prompt, as it comes from file upload
-const getDisplayableBatchPrompt = (promptContent: any): string => {
-  if (typeof promptContent === 'string') {
-    return promptContent || "No prompt provided";
-  }
-  if (promptContent === null || promptContent === undefined) {
-    return "No prompt provided";
-  }
-  // Explicitly handle {prompt: "string_value"} where 'prompt' is the ONLY key
-  if (typeof promptContent === 'object' && promptContent !== null &&
-      Object.keys(promptContent).length === 1 &&
-      promptContent.hasOwnProperty('prompt') &&
-      typeof promptContent.prompt === 'string') {
-    return promptContent.prompt || "No prompt provided";
-  }
-  // console.warn('getDisplayableBatchPrompt: Rendering placeholder for unexpected prompt structure:', JSON.stringify(promptContent));
-  return "[Invalid Prompt Format]";
-};
-
 
 interface BatchItemCardProps {
   item: ProcessedBatchItem;
@@ -67,10 +46,10 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
       <CardHeader>
         <CardTitle className="flex items-center text-lg font-semibold">
           <FileText className="mr-2 h-5 w-5 text-primary" />
-          Prompt ID: {renderItemID(item.id)}
+          Prompt ID: {renderContentSafely(item.id, "No ID")}
         </CardTitle>
         <CardDescription className="pt-1 font-code text-sm whitespace-pre-wrap">
-          {getDisplayableBatchPrompt(item.prompt)}
+          {renderContentSafely(item.prompt, "No prompt provided")}
         </CardDescription>
       </CardHeader>
       
@@ -78,7 +57,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
         {item.error ? (
           <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive flex items-start">
             <AlertTriangle className="h-5 w-5 mr-2 mt-0.5 shrink-0" />
-            <span className="flex-grow whitespace-pre-wrap">{renderErrorContent(item.error, "Error occurred, no details.")}</span>
+            <span className="flex-grow whitespace-pre-wrap">{renderContentSafely(item.error, "Error occurred, no details.")}</span>
           </div>
         ) : (
           <>
@@ -88,7 +67,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                   <Bot className="mr-2 h-5 w-5" /> Model A Response
                 </h3>
                 <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                  {renderPreCleanedString(item.responseA, "No response from Model A")}
+                  {renderContentSafely(item.responseA, "No response from Model A")}
                 </div>
               </div>
               <div>
@@ -96,7 +75,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                   <Bot className="mr-2 h-5 w-5" /> Model B Response
                 </h3>
                 <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                  {renderPreCleanedString(item.responseB, "No response from Model B")}
+                  {renderContentSafely(item.responseB, "No response from Model B")}
                 </div>
               </div>
             </div>
@@ -108,7 +87,7 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
                 <CheckSquare className="mr-2 h-5 w-5" /> Evaluation
               </h3>
               <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-                {renderPreCleanedString(item.evaluation, "No evaluation available")}
+                {renderContentSafely(item.evaluation, "No evaluation available")}
               </div>
             </div>
           </>

@@ -5,29 +5,35 @@ import { Separator } from '@/components/ui/separator';
 import type { ConversationTurn } from '@/types';
 import { Bot, UserCircle, CheckSquare } from 'lucide-react';
 
-// Helper for AI responses & evaluation - expects data to be stringified in page.tsx
-const renderPreCleanedString = (content: string | undefined | null, defaultText: string = "N/A"): string => {
-  // Assumes content is already a string due to ensureStringContent in page.tsx
-  return content || defaultText;
-};
-
-// Robust helper for the main user prompt, as it comes more directly from input
-const getDisplayableUserPrompt = (promptContent: any): string => {
-  if (typeof promptContent === 'string') {
-    return promptContent || "No user prompt";
+const renderContentSafely = (content: any, defaultText: string = "N/A"): string => {
+  if (typeof content === 'string') {
+    return content || defaultText;
   }
-  if (promptContent === null || promptContent === undefined) {
-    return "No user prompt";
+  if (typeof content === 'number' || typeof content === 'boolean') {
+    return String(content);
   }
-  // Explicitly handle {prompt: "string_value"} where 'prompt' is the ONLY key
-  if (typeof promptContent === 'object' && promptContent !== null &&
-      Object.keys(promptContent).length === 1 &&
-      promptContent.hasOwnProperty('prompt') &&
-      typeof promptContent.prompt === 'string') {
-    return promptContent.prompt || "No user prompt";
+  if (content === null || content === undefined) {
+    return defaultText;
   }
-  // console.warn('getDisplayableUserPrompt: Rendering placeholder for unexpected prompt structure:', JSON.stringify(promptContent));
-  return "[Invalid User Prompt Format]";
+  if (typeof content === 'object' &&
+      Object.prototype.hasOwnProperty.call(content, 'prompt') &&
+      typeof content.prompt === 'string') {
+    // console.warn('renderContentSafely (Interactive): Extracting from {prompt: string} object.');
+    return content.prompt || defaultText;
+  }
+  if (typeof content === 'object') {
+    // console.warn('renderContentSafely (Interactive): Attempting to stringify complex object.');
+    try {
+      const str = JSON.stringify(content);
+      if (str === '{}') return '[Empty Object]';
+      return str;
+    } catch (e) {
+      // console.error('renderContentSafely (Interactive): Failed to stringify object.', e);
+      return '[Unstringifiable Object]';
+    }
+  }
+  // console.warn('renderContentSafely (Interactive): Encountered unexpected type, converting to string:', typeof content);
+  return String(content);
 };
 
 interface ConversationTurnCardProps {
@@ -43,7 +49,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
           User Prompt
         </CardTitle>
         <CardDescription className="pt-1 font-code text-sm whitespace-pre-wrap">
-          {getDisplayableUserPrompt(turn.userPrompt)}
+          {renderContentSafely(turn.userPrompt, "No user prompt")}
         </CardDescription>
       </CardHeader>
       
@@ -54,7 +60,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model A Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-              {renderPreCleanedString(turn.responseA, "No response from Model A")}
+              {renderContentSafely(turn.responseA, "No response from Model A")}
             </div>
           </div>
           <div>
@@ -62,7 +68,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model B Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-              {renderPreCleanedString(turn.responseB, "No response from Model B")}
+              {renderContentSafely(turn.responseB, "No response from Model B")}
             </div>
           </div>
         </div>
@@ -74,7 +80,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
             <CheckSquare className="mr-2 h-5 w-5" /> Evaluation
           </h3>
           <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-            {renderPreCleanedString(turn.evaluation, "No evaluation available")}
+            {renderContentSafely(turn.evaluation, "No evaluation available")}
           </div>
         </div>
       </CardContent>
