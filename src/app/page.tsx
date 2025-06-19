@@ -125,27 +125,22 @@ const getSafeToastDescription = (error: any): string => {
     potentialMessageSource = error.message;
   }
   
-  // If potentialMessageSource is now a string (from error.message), use it.
   if (typeof potentialMessageSource === 'string') {
     return potentialMessageSource || "An unknown error occurred.";
   }
 
-  // If potentialMessageSource is still an object (or was originally an object error)
   if (typeof potentialMessageSource === 'object' && potentialMessageSource !== null) {
-    // Check for the direct {prompt: "string"} structure
     if (Object.keys(potentialMessageSource).length === 1 &&
         Object.prototype.hasOwnProperty.call(potentialMessageSource, 'prompt') &&
         typeof potentialMessageSource.prompt === 'string') {
       return potentialMessageSource.prompt || "Error: Malformed prompt object in error.";
     }
     
-    // Try to find a nested prompt string
     const nestedPrompt = findNestedPromptString(potentialMessageSource);
     if (nestedPrompt !== null) {
       return nestedPrompt || "Error: Empty nested prompt in error object.";
     }
     
-    // Fallback to JSON.stringify for other object structures
     try {
       const stringified = JSON.stringify(potentialMessageSource);
       if (stringified === '{}' && Object.keys(potentialMessageSource).length > 0) {
@@ -208,8 +203,8 @@ export default function Home() {
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
     
-    let userPromptString = getCleanedPromptString(userInput); // Step 1: Initial cleaning
-    userPromptString = forceStringOrVerySpecificPlaceholder(userPromptString, 'UserPrompt'); // Step 2: Force to string or specific placeholder
+    let userPromptString = getCleanedPromptString(userInput); 
+    userPromptString = forceStringOrVerySpecificPlaceholder(userPromptString, 'UserPrompt');
 
     try {
       const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
@@ -222,19 +217,17 @@ export default function Home() {
         ...appConfig.apiConfig,
       });
 
-      // Directly apply forceStringOrVerySpecificPlaceholder to AI outputs
       let finalResponseA = forceStringOrVerySpecificPlaceholder(responses.responseA, 'ResponseA');
       let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'ResponseB');
       
       const evaluationResult = await evaluateResponse({
         prompt: userPromptString, 
-        responseA: finalResponseA, // Use already stringified version for eval input
-        responseB: finalResponseB, // Use already stringified version for eval input
+        responseA: finalResponseA, 
+        responseB: finalResponseB, 
       });
       
       let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation');
 
-      // Final override checks (ultra-defensive)
       if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[FINAL_OVERRIDE_USER_PROMPT_WAS_OBJECT]";
       if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[FINAL_OVERRIDE_RESPONSE_A_WAS_OBJECT]";
       if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[FINAL_OVERRIDE_RESPONSE_B_WAS_OBJECT]";
@@ -255,7 +248,7 @@ export default function Home() {
         toast({
           variant: "destructive",
           title: "Evaluation Error",
-          description: getSafeToastDescription(error), // This function is already robust
+          description: getSafeToastDescription(error),
         });
       }
     }
@@ -271,10 +264,10 @@ export default function Home() {
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
       
-      let promptString = getCleanedPromptString(item.prompt); // Step 1
-      promptString = forceStringOrVerySpecificPlaceholder(promptString, 'BatchItemPrompt'); // Step 2
+      let promptString = getCleanedPromptString(item.prompt); 
+      promptString = forceStringOrVerySpecificPlaceholder(promptString, 'BatchItemPrompt'); 
       
-      let itemIdString = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID'); // Step 2 for ID
+      let itemIdString = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID'); 
 
       try {
         const fullPromptA = interpolatePrompt(appConfig.promptATemplate, promptString);
@@ -298,7 +291,6 @@ export default function Home() {
 
         let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'BatchEvaluation');
         
-        // Final override checks (ultra-defensive)
         if (typeof itemIdString === 'object' && itemIdString !== null) itemIdString = "[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT]";
         if (typeof promptString === 'object' && promptString !== null) promptString = "[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT]";
         if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[FINAL_OVERRIDE_BATCH_RSPA_WAS_OBJECT]";
@@ -315,10 +307,9 @@ export default function Home() {
         });
 
       } catch (error) {
-        let errorDescriptionString = getSafeToastDescription(error); // Robust error desc
-        errorDescriptionString = forceStringOrVerySpecificPlaceholder(errorDescriptionString, 'BatchItemError'); // Then force to string
+        let errorDescriptionString = getSafeToastDescription(error); 
+        errorDescriptionString = forceStringOrVerySpecificPlaceholder(errorDescriptionString, 'BatchItemError');
 
-        // Final override checks for error case values (ultra-defensive)
         if (typeof itemIdString === 'object' && itemIdString !== null) itemIdString = "[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT]";
         if (typeof promptString === 'object' && promptString !== null) promptString = "[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT]";
         if (typeof errorDescriptionString === 'object' && errorDescriptionString !== null) errorDescriptionString = "[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT]";
@@ -332,7 +323,7 @@ export default function Home() {
         if (isClient) {
            toast({
             variant: "destructive",
-            title: `Error processing item ${itemIdString}`, // itemIdString should be safe here
+            title: `Error processing item ${itemIdString}`, 
             description: errorDescriptionString, 
           });
         }
@@ -391,4 +382,6 @@ export default function Home() {
     </div>
   );
 }
+    
+
     

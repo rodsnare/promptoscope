@@ -17,7 +17,7 @@ interface ConfigurationPanelProps {
 
 const ensureStringForConfig = (content: any): string => {
   if (content === null || content === undefined) {
-    return ""; // Default to empty string for null/undefined
+    return ""; 
   }
   if (typeof content === 'string') {
     return content;
@@ -25,7 +25,7 @@ const ensureStringForConfig = (content: any): string => {
   if (typeof content === 'number' || typeof content === 'boolean') {
     return String(content);
   }
-  // Specifically check for the {prompt: "string"} structure
+  
   if (
     typeof content === 'object' &&
     content !== null &&
@@ -35,20 +35,21 @@ const ensureStringForConfig = (content: any): string => {
   ) {
     return (content as { prompt: string }).prompt;
   }
-  // Fallback for other unexpected object types in config values
+ 
   if (typeof content === 'object' && content !== null) {
     try {
       const strVal = JSON.stringify(content);
-      // If it stringifies to {} but has keys, it's a complex object we can't render directly
       if (strVal === '{}' && Object.keys(content).length > 0) {
         return `[Complex Config Object: ${Object.keys(content).join(', ')}]`;
+      } else if (strVal === '{}' && Object.keys(content).length === 0) {
+        return "[Empty Config Object]";
       }
-      return strVal; // Return the stringified object
+      return strVal; 
     } catch {
-      return "[Unstringifiable Config Object]"; // If JSON.stringify fails
+      return "[Unstringifiable Config Object]";
     }
   }
-  return String(content); // Final fallback for any other type
+  return String(content); 
 };
 
 
@@ -186,3 +187,6 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 };
 
 export default ConfigurationPanel;
+
+
+    
