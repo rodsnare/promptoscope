@@ -1,6 +1,7 @@
 
 import type {NextConfig} from 'next';
 import type {Configuration as WebpackConfiguration} from 'webpack';
+import path from 'path'; // Import path
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -26,7 +27,7 @@ const nextConfig: NextConfig = {
   experimental: {
     turbo: {
       resolveFallbacks: {
-        'async_hooks': false,
+        'async_hooks': path.resolve(__dirname, 'src/lib/empty-module.js'),
       },
     },
   },
@@ -40,7 +41,7 @@ const nextConfig: NextConfig = {
       }
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        async_hooks: false,
+        async_hooks: false, // Webpack typically handles 'false' correctly
       };
     }
     // Important: return the modified config
