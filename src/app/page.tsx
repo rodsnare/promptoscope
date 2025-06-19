@@ -39,11 +39,9 @@ function findNestedPromptString(obj: any): string | null {
 
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      if (typeof obj[key] === 'object' && obj[key] !== null) {
-         const nestedResult = findNestedPromptString(obj[key]);
-         if (nestedResult !== null) {
-            return nestedResult;
-         }
+      const nestedResult = findNestedPromptString(obj[key]);
+      if (nestedResult !== null) {
+        return nestedResult;
       }
     }
   }
@@ -99,14 +97,19 @@ function ensureStringContent(content: any, defaultString: string = "No content p
   }
   // For any other object type, return a placeholder.
   if (typeof content === 'object' && content !== null) {
-     const keys = Object.keys(content);
-     if (keys.length === 0) {
-        return `[Empty Object Content]`;
-     }
-    return `[Object Content (keys: ${keys.join(', ')})]`;
+     try {
+        const stringified = JSON.stringify(content);
+        if (stringified === '{}' && Object.keys(content).length > 0) {
+          return `[Object Content (keys: ${Object.keys(content).join(', ')})]`;
+        } else if (stringified === '{}' && Object.keys(content).length === 0) {
+           return "[Empty Object Content]";
+        }
+        return stringified;
+      } catch {
+        return "[Unstringifiable Object Content]";
+      }
   }
-  // Fallback for any other type (e.g. function, symbol)
-  return String(content); 
+  return String(content) || defaultString; 
 }
 
 
@@ -127,22 +130,22 @@ const getSafeToastDescription = (error: any): string => {
   }
 
   if (typeof potentialMessageSource === 'object' && potentialMessageSource !== null) {
-    if (
-      Object.keys(potentialMessageSource).length === 1 &&
-      Object.prototype.hasOwnProperty.call(potentialMessageSource, 'prompt') &&
-      typeof potentialMessageSource.prompt === 'string'
-    ) {
+    // Check for direct {prompt: "string"} structure first
+    if (Object.keys(potentialMessageSource).length === 1 &&
+        Object.prototype.hasOwnProperty.call(potentialMessageSource, 'prompt') &&
+        typeof potentialMessageSource.prompt === 'string') {
       return potentialMessageSource.prompt || "Error: Malformed prompt object in error.";
     }
     
+    // Try finding a nested prompt string
     const nestedPrompt = findNestedPromptString(potentialMessageSource);
     if (nestedPrompt !== null) {
       return nestedPrompt || "Error: Empty nested prompt in error object.";
     }
     
+    // Fallback to stringify if no direct or nested prompt found
     try {
       const stringified = JSON.stringify(potentialMessageSource);
-      // Check if it's an empty object stringified, but actually has keys (e.g. non-enumerable)
       if (stringified === '{}' && Object.keys(potentialMessageSource).length > 0) {
         return `[Object Error (keys: ${Object.keys(potentialMessageSource).join(', ')})]`;
       } else if (stringified === '{}' && Object.keys(potentialMessageSource).length === 0) {
@@ -157,6 +160,25 @@ const getSafeToastDescription = (error: any): string => {
   const finalMessage = String(potentialMessageSource);
   return finalMessage || "An unknown error occurred.";
 };
+
+function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): string {
+  if (value === null || value === undefined) {
+    return `[${fieldName}: VALUE_IS_NULL_OR_UNDEFINED]`;
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (typeof value === 'object') {
+    if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, 'prompt') && typeof value.prompt === 'string') {
+      return value.prompt;
+    }
+    return `[${fieldName}: UNEXPECTED_OBJECT_STRUCTURE_ENCOUNTERED]`;
+  }
+  return `[${fieldName}: UNKNOWN_DATA_TYPE_ENCOUNTERED]`;
+}
 
 
 export default function Home() {
@@ -178,17 +200,19 @@ export default function Home() {
   }, []);
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
+    // Ensure userPrompt is a string for interpolation
     const safeUserPrompt = typeof userPrompt === 'string' ? userPrompt : '[Invalid User Prompt for Interpolation]';
     return template.replace(/\{\{prompt\}\}/g, safeUserPrompt);
   };
 
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
-    let userPromptString = getCleanedPromptString(userInput);
+    const cleanedUserInput = getCleanedPromptString(userInput);
+    let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserInput, 'UserPrompt');
 
     try {
-      const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
-      const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptString);
+      const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
+      const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptForState);
 
       const responses = await compareResponses({
         promptA: fullPromptA,
@@ -197,24 +221,30 @@ export default function Home() {
         ...appConfig.apiConfig,
       });
 
+      const rawResponseA = responses.responseA;
+      const rawResponseB = responses.responseB;
+
       const evaluationResult = await evaluateResponse({
-        prompt: userPromptString,
-        responseA: ensureStringContent(responses.responseA, "No response from Model A's source"),
-        responseB: ensureStringContent(responses.responseB, "No response from Model B's source"),
+        prompt: userPromptForState, // Already a string
+        responseA: forceStringOrVerySpecificPlaceholder(rawResponseA, 'RawResponseAForEval'), 
+        responseB: forceStringOrVerySpecificPlaceholder(rawResponseB, 'RawResponseBForEval'),
       });
       
-      let finalResponseA = ensureStringContent(responses.responseA, "No response from Model A");
-      let finalResponseB = ensureStringContent(responses.responseB, "No response from Model B");
-      let finalEvaluation = ensureStringContent(evaluationResult.evaluation, "No evaluation available");
+      const rawEvaluation = evaluationResult.evaluation;
 
-      if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[Object detected in userPromptString override]";
+      let finalResponseA = forceStringOrVerySpecificPlaceholder(rawResponseA, 'ResponseA');
+      let finalResponseB = forceStringOrVerySpecificPlaceholder(rawResponseB, 'ResponseB');
+      let finalEvaluation = forceStringOrVerySpecificPlaceholder(rawEvaluation, 'Evaluation');
+
+      // Final safety net: Ensure all parts of the turn are strings.
+      if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in userPromptForState override]";
       if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA override]";
       if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB override]";
       if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[Object detected in finalEvaluation override]";
-
+      
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
-        userPrompt: userPromptString,
+        userPrompt: userPromptForState,
         responseA: finalResponseA,
         responseB: finalResponseB,
         evaluation: finalEvaluation,
@@ -242,11 +272,14 @@ export default function Home() {
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
-      let userPromptString = getCleanedPromptString(item.prompt); 
+      const cleanedItemPrompt = getCleanedPromptString(item.prompt);
+      let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedItemPrompt, 'BatchItemPrompt');
+      const itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID');
+
 
       try {
-        const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
-        const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptString);
+        const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
+        const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptForState);
 
         const responses = await compareResponses({
           promptA: fullPromptA,
@@ -255,24 +288,30 @@ export default function Home() {
           ...appConfig.apiConfig,
         });
         
+        const rawResponseA = responses.responseA;
+        const rawResponseB = responses.responseB;
+
         const evaluationResult = await evaluateResponse({
-          prompt: userPromptString, 
-          responseA: ensureStringContent(responses.responseA, "No response from Model A's source for batch"),
-          responseB: ensureStringContent(responses.responseB, "No response from Model B's source for batch"),
+          prompt: userPromptForState, 
+          responseA: forceStringOrVerySpecificPlaceholder(rawResponseA, 'RawResponseAForBatchEval'),
+          responseB: forceStringOrVerySpecificPlaceholder(rawResponseB, 'RawResponseBForBatchEval'),
         });
 
-        let finalResponseA = ensureStringContent(responses.responseA, "No response from Model A for batch");
-        let finalResponseB = ensureStringContent(responses.responseB, "No response from Model B for batch");
-        let finalEvaluation = ensureStringContent(evaluationResult.evaluation, "No evaluation available for batch");
+        const rawEvaluation = evaluationResult.evaluation;
+
+        let finalResponseA = forceStringOrVerySpecificPlaceholder(rawResponseA, 'BatchResponseA');
+        let finalResponseB = forceStringOrVerySpecificPlaceholder(rawResponseB, 'BatchResponseB');
+        let finalEvaluation = forceStringOrVerySpecificPlaceholder(rawEvaluation, 'BatchEvaluation');
         
-        if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[Object detected in batch userPromptString override]";
+        // Final safety net for batch items
+        if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in batch userPromptForState override]";
         if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA for batch override]";
         if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB for batch override]";
         if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[Object detected in finalEvaluation for batch override]";
-
+        
         results.push({
-          id: String(item.id),
-          prompt: userPromptString, 
+          id: itemIdForState,
+          prompt: userPromptForState, 
           responseA: finalResponseA,
           responseB: finalResponseB,
           evaluation: finalEvaluation,
@@ -280,25 +319,28 @@ export default function Home() {
         });
 
       } catch (error) {
-        let errorString = getSafeToastDescription(error);
-        if (typeof errorString === 'object' && errorString !== null) errorString = "[Object detected in errorString override]";
+        let errorDescription = getSafeToastDescription(error);
+        let errorForState = forceStringOrVerySpecificPlaceholder(errorDescription, 'BatchItemError');
 
+        // Final safety net for error string
+        if (typeof errorForState === 'object' && errorForState !== null) errorForState = "[Object detected in errorForState override]";
+        
         results.push({
-          id: String(item.id), 
-          prompt: userPromptString,
-          error: errorString, 
+          id: itemIdForState, 
+          prompt: userPromptForState,
+          error: errorForState, 
           timestamp: new Date(),
         });
         if (isClient) {
            toast({
             variant: "destructive",
-            title: `Error processing item ${getCleanedPromptString(String(item.id))}`,
-            description: errorString, 
+            title: `Error processing item ${itemIdForState}`,
+            description: errorForState, 
           });
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]);
+      setBatchResults([...results]); // Update results incrementally for better UX
     }
 
     setBatchIsLoading(false);
@@ -357,5 +399,7 @@ export default function Home() {
 
 
 
+
+    
 
     
