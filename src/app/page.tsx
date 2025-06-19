@@ -190,14 +190,14 @@ const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): strin
   }
   // Check for the specific problematic object {prompt: "string"}
   if (typeof value === 'object' &&
-      value !== null && // Added null check for safety
+      value !== null && 
       Object.prototype.hasOwnProperty.call(value, 'prompt') &&
       typeof value.prompt === 'string' &&
       Object.keys(value).length === 1) {
     return value.prompt || `[${fieldNameForPlaceholder}_HAD_EMPTY_PROMPT_IN_OBJECT]`;
   }
   // For any other object type, return a placeholder
-  if (typeof value === 'object' && value !== null) { // Added null check
+  if (typeof value === 'object' && value !== null) { 
     const keys = Object.keys(value);
     if (keys.length === 0) {
       return `[${fieldNameForPlaceholder}_WAS_EMPTY_OBJECT]`;
@@ -374,23 +374,14 @@ export default function Home() {
         });
       }
   };
-
+  
+  // Ensure appConfig passed to ConfigurationPanel always has string values for these fields
   const sanitizedAppConfigForPanel: AppConfig = {
     systemInstruction: getSafeConfigString(appConfig.systemInstruction, 'SystemInstruction'),
     promptATemplate: getSafeConfigString(appConfig.promptATemplate, 'PromptATemplate'),
     promptBTemplate: getSafeConfigString(appConfig.promptBTemplate, 'PromptBTemplate'),
-    apiConfig: appConfig.apiConfig,
+    apiConfig: appConfig.apiConfig, // apiConfig is already structured with numbers, not strings here
   };
-  
-  if (isConfigPanelOpen && isClient) {
-    console.log("--- DEBUG: CONFIG PANEL STATE (page.tsx) ---");
-    console.log("Raw appConfig:", JSON.stringify(appConfig, null, 2));
-    console.log("Sanitized appConfig for panel:", JSON.stringify(sanitizedAppConfigForPanel, null, 2));
-    console.log("Type of sanitized systemInstruction:", typeof sanitizedAppConfigForPanel.systemInstruction, "Value:", sanitizedAppConfigForPanel.systemInstruction);
-    console.log("Type of sanitized promptATemplate:", typeof sanitizedAppConfigForPanel.promptATemplate, "Value:", sanitizedAppConfigForPanel.promptATemplate);
-    console.log("Type of sanitized promptBTemplate:", typeof sanitizedAppConfigForPanel.promptBTemplate, "Value:", sanitizedAppConfigForPanel.promptBTemplate);
-    console.log("---------------------------------");
-  }
 
 
   return (
