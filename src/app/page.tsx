@@ -37,7 +37,7 @@ export default function Home() {
 
   const [interactiveHistory, setInteractiveHistory] = useState<ConversationTurn[]>([]);
   const [batchResults, setBatchResults] = useState<ProcessedBatchItem[]>([]);
-  
+
   const { toast } = useToast();
 
   const [isClient, setIsClient] = useState(false);
@@ -52,67 +52,92 @@ export default function Home() {
     if (typeof promptInput === 'string') {
       return promptInput;
     }
-    if (typeof promptInput === 'object' &&
-        Object.keys(promptInput).length === 1 && 
-        Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
-        typeof promptInput.prompt === 'string') {
-      return promptInput.prompt;
+    if (
+      typeof promptInput === 'object' &&
+      promptInput !== null &&
+      Object.keys(promptInput).length === 1 &&
+      Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
+      typeof promptInput.prompt === 'string'
+    ) {
+      return promptInput.prompt || "[Empty Prompt in Object]";
     }
-    return String(promptInput); 
+    if (typeof promptInput === 'object' && promptInput !== null) {
+      return "[Invalid Prompt Structure]"; // Specific placeholder for other objects
+    }
+    // For other primitives (boolean, number)
+    return String(promptInput);
   };
-  
+
   const getSafeToastDescription = (error: any): string => {
+    // Check if error.message is the problematic object
     if (error instanceof Error) {
-      if (typeof error.message === 'string') return error.message;
-      try {
-        return JSON.stringify(error.message);
-      } catch {
-        // Deliberately no console.log here
-        return "Failed to stringify error message object.";
-      }
+        if (
+            typeof error.message === 'object' &&
+            error.message !== null &&
+            Object.keys(error.message).length === 1 &&
+            Object.prototype.hasOwnProperty.call(error.message, 'prompt') &&
+            typeof error.message.prompt === 'string'
+        ) {
+            return error.message.prompt || "[Empty Prompt in Error Message]";
+        }
+        if (typeof error.message === 'string') return error.message;
+        try {
+            return JSON.stringify(error.message); // Fallback for other error.message types
+        } catch {
+            return "Failed to stringify error message object.";
+        }
     }
+
+    // Check if error itself is the problematic object
+    if (
+        typeof error === 'object' &&
+        error !== null &&
+        Object.keys(error).length === 1 &&
+        Object.prototype.hasOwnProperty.call(error, 'prompt') &&
+        typeof error.prompt === 'string'
+    ) {
+        return error.prompt || "[Empty Prompt in Error]";
+    }
+
     if (typeof error === 'string') return error;
+
+    // Fallback for other error types
     try {
-      return JSON.stringify(error);
+        return JSON.stringify(error);
     } catch {
-      // Deliberately no console.log here
-      return "An unknown error occurred.";
+        return "An unknown error occurred.";
     }
   };
+
 
   const ensureStringContent = (content: any, defaultString: string = "No content provided"): string => {
     if (content === null || content === undefined) {
       return defaultString;
     }
     if (typeof content === 'string') {
-      return content || defaultString; 
+      return content || defaultString;
     }
-    
-    //This specific check for {prompt: "string"} should ideally be handled before calling ensureStringContent
-    // if the source (like AI response) might directly be this object.
-    // However, keeping it here for defense in depth.
-    if (typeof content === 'object' &&
-        content !== null && // Ensure content is not null
-        Object.keys(content).length === 1 && 
-        Object.prototype.hasOwnProperty.call(content, 'prompt') &&
-        typeof content.prompt === 'string') {
-      return content.prompt || defaultString; 
+    if (
+      typeof content === 'object' &&
+      content !== null &&
+      Object.keys(content).length === 1 &&
+      Object.prototype.hasOwnProperty.call(content, 'prompt') &&
+      typeof content.prompt === 'string'
+    ) {
+      return content.prompt || defaultString;
     }
-
     if (typeof content === 'object' && content !== null) {
-      try {
-        const str = JSON.stringify(content);
-        return str === '{}' ? `[Empty Object]` : str;
-      } catch (e) {
-        return `[Unstringifiable Object]`;
-      }
+      return `[Unsupported Object Content]`; // Specific placeholder for other objects
     }
+    // For other primitives
     return String(content);
   };
 
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
-    return template.replace(/\{\{prompt\}\}/g, userPrompt);
+    // Ensure userPrompt is definitely a string before interpolation
+    const safeUserPrompt = typeof userPrompt === 'string' ? userPrompt : '[Invalid User Prompt for Interpolation]';
+    return template.replace(/\{\{prompt\}\}/g, safeUserPrompt);
   };
 
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
@@ -130,7 +155,6 @@ export default function Home() {
         ...appConfig.apiConfig,
       });
 
-      // Aggressive pre-processing for AI direct output
       let finalResponseA = responses.responseA;
       if (typeof responses.responseA === 'object' && responses.responseA !== null && Object.keys(responses.responseA).length === 1 && 'prompt' in responses.responseA && typeof responses.responseA.prompt === 'string') {
         finalResponseA = responses.responseA.prompt;
@@ -142,9 +166,9 @@ export default function Home() {
       }
 
       const evaluationResult = await evaluateResponse({
-        prompt: userPromptString, 
-        responseA: finalResponseA, 
-        responseB: finalResponseB, 
+        prompt: userPromptString,
+        responseA: ensureStringContent(finalResponseA, "No response from Model A's source"), // Pass unwrapped to ensureStringContent
+        responseB: ensureStringContent(finalResponseB, "No response from Model B's source"), // Pass unwrapped to ensureStringContent
       });
 
       let finalEvaluation = evaluationResult.evaluation;
@@ -154,7 +178,7 @@ export default function Home() {
 
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
-        userPrompt: userPromptString, 
+        userPrompt: userPromptString, // Already cleaned by getCleanedPromptString
         responseA: ensureStringContent(finalResponseA, "No response from Model A"),
         responseB: ensureStringContent(finalResponseB, "No response from Model B"),
         evaluation: ensureStringContent(finalEvaluation, "No evaluation available"),
@@ -163,12 +187,11 @@ export default function Home() {
       setInteractiveHistory(prev => [newTurn, ...prev]);
 
     } catch (error) {
-      // console.error("Error during interactive evaluation:", error); // Re-enable if needed for debugging
       if (isClient) {
         toast({
           variant: "destructive",
           title: "Evaluation Error",
-          description: getSafeToastDescription(error), 
+          description: getSafeToastDescription(error),
         });
       }
     }
@@ -177,13 +200,13 @@ export default function Home() {
 
   const handleProcessBatch = async (fileContent: BatchFileItem[]) => {
     setBatchIsLoading(true);
-    setBatchResults([]); 
+    setBatchResults([]);
     setBatchProgress(0);
     const results: ProcessedBatchItem[] = [];
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
-      const userPromptString = getCleanedPromptString(item.prompt); 
+      const userPromptString = getCleanedPromptString(item.prompt); // Use refined cleaner
 
       try {
         const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
@@ -195,8 +218,7 @@ export default function Home() {
           systemInstruction: appConfig.systemInstruction,
           ...appConfig.apiConfig,
         });
-        
-        // Aggressive pre-processing for AI direct output
+
         let finalResponseA = responses.responseA;
         if (typeof responses.responseA === 'object' && responses.responseA !== null && Object.keys(responses.responseA).length === 1 && 'prompt' in responses.responseA && typeof responses.responseA.prompt === 'string') {
           finalResponseA = responses.responseA.prompt;
@@ -209,18 +231,18 @@ export default function Home() {
 
         const evaluationResult = await evaluateResponse({
           prompt: userPromptString,
-          responseA: finalResponseA, 
-          responseB: finalResponseB, 
+          responseA: ensureStringContent(finalResponseA, "No response from Model A's source for batch"),
+          responseB: ensureStringContent(finalResponseB, "No response from Model B's source for batch"),
         });
-        
+
         let finalEvaluation = evaluationResult.evaluation;
         if (typeof evaluationResult.evaluation === 'object' && evaluationResult.evaluation !== null && Object.keys(evaluationResult.evaluation).length === 1 && 'prompt' in evaluationResult.evaluation && typeof evaluationResult.evaluation.prompt === 'string') {
           finalEvaluation = evaluationResult.evaluation.prompt;
         }
-        
+
         results.push({
-          id: item.id, 
-          prompt: userPromptString, 
+          id: item.id, // ID from file is assumed to be string/number by FileUpload validation
+          prompt: userPromptString, // Already cleaned
           responseA: ensureStringContent(finalResponseA, "No response from Model A"),
           responseB: ensureStringContent(finalResponseB, "No response from Model B"),
           evaluation: ensureStringContent(finalEvaluation, "No evaluation available"),
@@ -228,11 +250,10 @@ export default function Home() {
         });
 
       } catch (error) {
-        // console.error(`Error processing batch item ${item.id}:`, error); // Re-enable if needed for debugging
         results.push({
           id: item.id,
           prompt: userPromptString,
-          error: ensureStringContent(getSafeToastDescription(error), "An error occurred during processing."), // Ensure error is also stringified
+          error: ensureStringContent(getSafeToastDescription(error), "An error occurred during processing."),
           timestamp: new Date(),
         });
         if (isClient) {
@@ -244,9 +265,9 @@ export default function Home() {
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]); 
+      setBatchResults([...results]);
     }
-    
+
     setBatchIsLoading(false);
      if (isClient) {
         toast({
@@ -266,7 +287,7 @@ export default function Home() {
           onConfigChange={setAppConfig}
         />
       </Sheet>
-      
+
       <ModeSwitcher currentMode={mode} onModeChange={setMode} />
 
       <main className="flex-grow container mx-auto w-full max-w-7xl flex flex-col overflow-hidden">
@@ -285,11 +306,11 @@ export default function Home() {
           />
         )}
       </main>
-      
+
       <footer className="container mx-auto w-full max-w-7xl py-2 sticky bottom-0 bg-background/80 backdrop-blur-sm border-t">
-         <DownloadPanel 
-            mode={mode} 
-            interactiveHistory={interactiveHistory} 
+         <DownloadPanel
+            mode={mode}
+            interactiveHistory={interactiveHistory}
             batchResults={batchResults}
             isDisabled={isLoading || batchIsLoading}
           />
@@ -297,4 +318,3 @@ export default function Home() {
     </div>
   );
 }
-    
