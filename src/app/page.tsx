@@ -94,7 +94,7 @@ function ensureStringContent(content: any, defaultString: string = "No content p
   ) {
     return content.prompt || defaultString; 
   }
-  // For any other object type, return a placeholder.
+  
   if (typeof content === 'object' && content !== null) {
      try {
         const stringified = JSON.stringify(content);
@@ -136,13 +136,11 @@ const getSafeToastDescription = (error: any): string => {
       return potentialMessageSource.prompt || "Error: Malformed prompt object in error.";
     }
     
-    // Try finding a nested prompt string
     const nestedPrompt = findNestedPromptString(potentialMessageSource);
     if (nestedPrompt !== null) {
       return nestedPrompt || "Error: Empty nested prompt in error object.";
     }
     
-    // Fallback to stringify if no direct or nested prompt found
     try {
       const stringified = JSON.stringify(potentialMessageSource);
       if (stringified === '{}' && Object.keys(potentialMessageSource).length > 0) {
@@ -199,14 +197,16 @@ export default function Home() {
   }, []);
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
+    // Ensure userPrompt is a string before interpolation
     const safeUserPrompt = typeof userPrompt === 'string' ? userPrompt : '[Invalid User Prompt for Interpolation]';
     return template.replace(/\{\{prompt\}\}/g, safeUserPrompt);
   };
 
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
-    const cleanedUserInput = getCleanedPromptString(userInput);
-    let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserInput, 'UserPrompt');
+    
+    let userPromptForState = getCleanedPromptString(userInput);
+    userPromptForState = forceStringOrVerySpecificPlaceholder(userPromptForState, 'UserPrompt');
 
     try {
       const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
@@ -225,37 +225,11 @@ export default function Home() {
         responseB: forceStringOrVerySpecificPlaceholder(responses.responseB, 'RawResponseBForEval'),
       });
       
-      let processedResponseA: any = responses.responseA;
-      if (typeof processedResponseA === 'object' && processedResponseA !== null && Object.keys(processedResponseA).length === 1 && Object.prototype.hasOwnProperty.call(processedResponseA, 'prompt') && typeof processedResponseA.prompt === 'string') {
-        processedResponseA = processedResponseA.prompt;
-      } else if (typeof processedResponseA === 'object' && processedResponseA !== null) {
-        processedResponseA = "[Object Response A - PreForce]";
-      } else if (processedResponseA === null || processedResponseA === undefined) {
-        processedResponseA = "[Null/Undefined Response A - PreForce]";
-      }
+      let finalResponseA = forceStringOrVerySpecificPlaceholder(responses.responseA, 'ResponseA');
+      let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'ResponseB');
+      let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation');
 
-      let processedResponseB: any = responses.responseB;
-      if (typeof processedResponseB === 'object' && processedResponseB !== null && Object.keys(processedResponseB).length === 1 && Object.prototype.hasOwnProperty.call(processedResponseB, 'prompt') && typeof processedResponseB.prompt === 'string') {
-        processedResponseB = processedResponseB.prompt;
-      } else if (typeof processedResponseB === 'object' && processedResponseB !== null) {
-        processedResponseB = "[Object Response B - PreForce]";
-      } else if (processedResponseB === null || processedResponseB === undefined) {
-        processedResponseB = "[Null/Undefined Response B - PreForce]";
-      }
-
-      let processedEvaluation: any = evaluationResult.evaluation;
-      if (typeof processedEvaluation === 'object' && processedEvaluation !== null && Object.keys(processedEvaluation).length === 1 && Object.prototype.hasOwnProperty.call(processedEvaluation, 'prompt') && typeof processedEvaluation.prompt === 'string') {
-        processedEvaluation = processedEvaluation.prompt;
-      } else if (typeof processedEvaluation === 'object' && processedEvaluation !== null) {
-        processedEvaluation = "[Object Evaluation - PreForce]";
-      } else if (processedEvaluation === null || processedEvaluation === undefined) {
-        processedEvaluation = "[Null/Undefined Evaluation - PreForce]";
-      }
-
-      let finalResponseA = forceStringOrVerySpecificPlaceholder(processedResponseA, 'ResponseA');
-      let finalResponseB = forceStringOrVerySpecificPlaceholder(processedResponseB, 'ResponseB');
-      let finalEvaluation = forceStringOrVerySpecificPlaceholder(processedEvaluation, 'Evaluation');
-
+      // Final override checks
       if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in userPromptForState override]";
       if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA override]";
       if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB override]";
@@ -291,9 +265,11 @@ export default function Home() {
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
-      const cleanedItemPrompt = getCleanedPromptString(item.prompt);
-      let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedItemPrompt, 'BatchItemPrompt');
-      const itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID');
+      
+      let userPromptForState = getCleanedPromptString(item.prompt);
+      userPromptForState = forceStringOrVerySpecificPlaceholder(userPromptForState, 'BatchItemPrompt');
+      
+      let itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID');
 
       try {
         const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
@@ -312,37 +288,12 @@ export default function Home() {
           responseB: forceStringOrVerySpecificPlaceholder(responses.responseB, 'RawResponseBForBatchEval'),
         });
 
-        let processedResponseA: any = responses.responseA;
-        if (typeof processedResponseA === 'object' && processedResponseA !== null && Object.keys(processedResponseA).length === 1 && Object.prototype.hasOwnProperty.call(processedResponseA, 'prompt') && typeof processedResponseA.prompt === 'string') {
-          processedResponseA = processedResponseA.prompt;
-        } else if (typeof processedResponseA === 'object' && processedResponseA !== null) {
-          processedResponseA = "[Object Batch Response A - PreForce]";
-        } else if (processedResponseA === null || processedResponseA === undefined) {
-          processedResponseA = "[Null/Undefined Batch Response A - PreForce]";
-        }
-
-        let processedResponseB: any = responses.responseB;
-        if (typeof processedResponseB === 'object' && processedResponseB !== null && Object.keys(processedResponseB).length === 1 && Object.prototype.hasOwnProperty.call(processedResponseB, 'prompt') && typeof processedResponseB.prompt === 'string') {
-          processedResponseB = processedResponseB.prompt;
-        } else if (typeof processedResponseB === 'object' && processedResponseB !== null) {
-          processedResponseB = "[Object Batch Response B - PreForce]";
-        } else if (processedResponseB === null || processedResponseB === undefined) {
-          processedResponseB = "[Null/Undefined Batch Response B - PreForce]";
-        }
-
-        let processedEvaluation: any = evaluationResult.evaluation;
-        if (typeof processedEvaluation === 'object' && processedEvaluation !== null && Object.keys(processedEvaluation).length === 1 && Object.prototype.hasOwnProperty.call(processedEvaluation, 'prompt') && typeof processedEvaluation.prompt === 'string') {
-          processedEvaluation = processedEvaluation.prompt;
-        } else if (typeof processedEvaluation === 'object' && processedEvaluation !== null) {
-          processedEvaluation = "[Object Batch Evaluation - PreForce]";
-        } else if (processedEvaluation === null || processedEvaluation === undefined) {
-          processedEvaluation = "[Null/Undefined Batch Evaluation - PreForce]";
-        }
+        let finalResponseA = forceStringOrVerySpecificPlaceholder(responses.responseA, 'BatchResponseA');
+        let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'BatchResponseB');
+        let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'BatchEvaluation');
         
-        let finalResponseA = forceStringOrVerySpecificPlaceholder(processedResponseA, 'BatchResponseA');
-        let finalResponseB = forceStringOrVerySpecificPlaceholder(processedResponseB, 'BatchResponseB');
-        let finalEvaluation = forceStringOrVerySpecificPlaceholder(processedEvaluation, 'BatchEvaluation');
-        
+        // Final override checks
+        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = "[Object detected in itemIdForState override]";
         if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in batch userPromptForState override]";
         if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA for batch override]";
         if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB for batch override]";
@@ -361,6 +312,9 @@ export default function Home() {
         let errorDescription = getSafeToastDescription(error);
         let errorForState = forceStringOrVerySpecificPlaceholder(errorDescription, 'BatchItemError');
 
+        // Final override checks for error case values
+        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = "[Object detected in itemIdForState (error path) override]";
+        if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in batch userPromptForState (error path) override]";
         if (typeof errorForState === 'object' && errorForState !== null) errorForState = "[Object detected in errorForState override]";
         
         results.push({
@@ -378,7 +332,7 @@ export default function Home() {
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]);
+      setBatchResults([...results]); // Update results incrementally
     }
 
     setBatchIsLoading(false);
@@ -441,3 +395,4 @@ export default function Home() {
     
 
     
+
