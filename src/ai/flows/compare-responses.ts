@@ -2,16 +2,16 @@
 'use server';
 /**
  * @fileOverview A flow to compare responses from two different prompts or model configurations.
- *
- * - compareResponses - A function that takes two prompts and returns their responses for comparison.
- * - CompareResponsesInput - The input type for the compareResponses function.
- * - CompareResponsesOutput - The return type for the compareResponses function.
+ * THIS FLOW IS NO LONGER USED as of the new AppConfig structure.
+ * Direct ai.generate calls are made in page.tsx based on runMode.
+ * This file can be deprecated or removed. For now, it's left as is but unused.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const CompareResponsesInputSchema = z.object({
+// Original Schemas - these are not aligned with the new AppConfig structure
+const OriginalCompareResponsesInputSchema = z.object({
   promptA: z.string().describe('The first prompt to be evaluated.'),
   promptB: z.string().describe('The second prompt to be evaluated.'),
   systemInstruction: z.string().optional().describe('System instruction for the LLM.'),
@@ -19,32 +19,59 @@ const CompareResponsesInputSchema = z.object({
   topK: z.number().optional().describe('The top-k parameter to use for the LLM.'),
   maxOutputTokens: z.number().optional().describe('The maximum number of output tokens to generate.'),
 });
-export type CompareResponsesInput = z.infer<typeof CompareResponsesInputSchema>;
+export type OriginalCompareResponsesInput = z.infer<typeof OriginalCompareResponsesInputSchema>;
 
-const CompareResponsesOutputSchema = z.object({
+const OriginalCompareResponsesOutputSchema = z.object({
   responseA: z.string().describe('The response from the first prompt.'),
   responseB: z.string().describe('The response from the second prompt.'),
 });
-export type CompareResponsesOutput = z.infer<typeof CompareResponsesOutputSchema>;
+export type OriginalCompareResponsesOutput = z.infer<typeof OriginalCompareResponsesOutputSchema>;
 
-export async function compareResponses(input: CompareResponsesInput): Promise<CompareResponsesOutput> {
-  return compareResponsesFlow(input);
+// The flow below is based on the old structure and is NOT USED with the new AppConfig.
+export async function compareResponses(input: OriginalCompareResponsesInput): Promise<OriginalCompareResponsesOutput> {
+  // This flow is deprecated. Direct ai.generate calls are made from page.tsx.
+  console.warn("compareResponses flow is deprecated and should not be called directly with the new AppConfig structure.");
+  
+  // Fallback or error for unexpected calls
+  const modelConfig = {
+    temperature: input.temperature,
+    topK: input.topK,
+    maxOutputTokens: input.maxOutputTokens,
+  };
+  const systemInstruction = input.systemInstruction;
+
+  const [responseA, responseB] = await Promise.all([
+    ai.generate({
+      prompt: input.promptA,
+      config: modelConfig,
+      systemInstruction: systemInstruction,
+    }).then(res => res.text),
+    ai.generate({
+      prompt: input.promptB,
+      config: modelConfig,
+      systemInstruction: systemInstruction,
+    }).then(res => res.text),
+  ]);
+
+  return {
+    responseA: responseA!,
+    responseB: responseB!,
+  };
 }
 
+// The defineFlow below is also deprecated for the same reasons.
 const compareResponsesFlow = ai.defineFlow(
   {
-    name: 'compareResponsesFlow',
-    inputSchema: CompareResponsesInputSchema,
-    outputSchema: CompareResponsesOutputSchema,
+    name: 'compareResponsesFlow_DEPRECATED', // Renamed to indicate deprecation
+    inputSchema: OriginalCompareResponsesInputSchema,
+    outputSchema: OriginalCompareResponsesOutputSchema,
   },
   async input => {
-    // Define a model configuration object with optional parameters
     const modelConfig = {
       temperature: input.temperature,
       topK: input.topK,
       maxOutputTokens: input.maxOutputTokens,
     };
-
     const systemInstruction = input.systemInstruction;
 
     const [responseA, responseB] = await Promise.all([
@@ -66,4 +93,3 @@ const compareResponsesFlow = ai.defineFlow(
     };
   }
 );
-

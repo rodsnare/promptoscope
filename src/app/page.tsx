@@ -4,39 +4,62 @@
 import React, { useState, useEffect } from 'react';
 import AppHeader from '@/components/AppHeader';
 import ConfigurationPanel from '@/components/ConfigurationPanel';
-import ModeSwitcher from '@/components/ModeSwitcher';
+import ModeSwitcher from '@/components/ModeSwitcher'; // This is for Interactive vs Batch UI
 import InteractiveMode from '@/components/interactive/InteractiveMode';
 import BatchMode from '@/components/batch/BatchMode';
 import DownloadPanel from '@/components/DownloadPanel';
 import { useToast } from "@/hooks/use-toast";
 import { compareResponses } from '@/ai/flows/compare-responses';
 import { evaluateResponse } from '@/ai/flows/evaluate-response';
-import type { AppConfig, ApiConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, BatchFileItem } from '@/types';
+import { ai } from '@/ai/genkit'; // For direct model calls
+import type { AppConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, BatchFileItem, EvaluationRunMode, ApiConfig, ModelProcessingConfig, EvaluatorConfig } from '@/types';
 import { Sheet } from '@/components/ui/sheet';
 
-const initialApiConfig: ApiConfig = {
+const defaultApiConfig: ApiConfig = {
   temperature: 0.7,
   topK: 40,
   maxOutputTokens: 1024,
 };
 
-const initialAppConfig: AppConfig = {
-  systemInstruction: 'You are a helpful AI assistant.',
-  promptATemplate: 'User query: {{prompt}}\n\nRespond to the user query.',
-  promptBTemplate: 'User query: {{prompt}}\n\nRespond to the user query, but try to be more concise.',
-  apiConfig: initialApiConfig,
+const initialModelAConfig: ModelProcessingConfig = {
+  systemInstruction: 'You are Model A, a helpful AI assistant.',
+  promptTemplate: 'User query: {{prompt}}\n\nRespond to the user query as Model A.',
+  apiConfig: { ...defaultApiConfig },
 };
 
-// Helper to recursively find a string value for a 'prompt' key
+const initialModelBConfig: ModelProcessingConfig = {
+  systemInstruction: 'You are Model B, a concise AI assistant.',
+  promptTemplate: 'User query: {{prompt}}\n\nRespond to the user query concisely as Model B.',
+  apiConfig: { ...defaultApiConfig },
+};
+
+const initialEvaluatorConfig: EvaluatorConfig = {
+  evaluationPromptTemplate: `You are an expert evaluator of LLM responses.
+Original User Prompt: {{{prompt}}}
+Response A: {{{responseA}}}
+{{#if responseB}}
+Response B: {{{responseB}}}
+{{else}}
+(Response B was not generated in this run)
+{{/if}}
+Based on the original prompt and the provided response(s), evaluate the quality of Response A. If Response B is present, compare Response A and Response B, and state which is better and why. Be specific.`,
+  apiConfig: { ...defaultApiConfig, temperature: 0.5 }, // Evaluator might need different settings
+};
+
+const initialAppConfig: AppConfig = {
+  runMode: 'a_vs_b',
+  modelAConfig: initialModelAConfig,
+  modelBConfig: initialModelBConfig,
+  evaluatorConfig: initialEvaluatorConfig,
+};
+
 function findNestedPromptString(obj: any): string | null {
   if (typeof obj !== 'object' || obj === null) {
     return null;
   }
-
   if (Object.prototype.hasOwnProperty.call(obj, 'prompt') && typeof obj.prompt === 'string') {
     return obj.prompt;
   }
-
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const nestedResult = findNestedPromptString(obj[key]);
@@ -49,173 +72,59 @@ function findNestedPromptString(obj: any): string | null {
 }
 
 function getCleanedPromptString(promptInput: any): string {
-  if (promptInput === null || promptInput === undefined) {
-    return "";
-  }
-  if (typeof promptInput === 'string') {
-    return promptInput;
-  }
-  if (typeof promptInput === 'number' || typeof promptInput === 'boolean') {
-    return String(promptInput);
-  }
-  if (
-    typeof promptInput === 'object' &&
-    promptInput !== null &&
-    Object.keys(promptInput).length === 1 &&
-    Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
-    typeof promptInput.prompt === 'string'
-  ) {
+  if (promptInput === null || promptInput === undefined) return "";
+  if (typeof promptInput === 'string') return promptInput;
+  if (typeof promptInput === 'number' || typeof promptInput === 'boolean') return String(promptInput);
+  if (typeof promptInput === 'object' && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string' && Object.keys(promptInput).length === 1) {
     return promptInput.prompt || "";
   }
-  
-  if (typeof promptInput === 'object' && promptInput !== null) {
-    return "[Invalid Prompt Structure]";
-  }
+  if (typeof promptInput === 'object' && promptInput !== null) return "[Invalid Prompt Structure]";
   return String(promptInput);
 }
 
-
-function ensureStringContent(content: any, defaultString: string = "No content provided"): string {
-  if (content === null || content === undefined) {
-    return defaultString;
-  }
-  if (typeof content === 'string') {
-    return content || defaultString;
-  }
-  if (typeof content === 'number' || typeof content === 'boolean') {
-    return String(content);
-  }
-  if (
-    typeof content === 'object' &&
-    content !== null &&
-    Object.keys(content).length === 1 &&
-    Object.prototype.hasOwnProperty.call(content, 'prompt') &&
-    typeof content.prompt === 'string'
-  ) {
-    return content.prompt || defaultString;
-  }
-  
-  if (typeof content === 'object' && content !== null) {
-     try {
-        const stringified = JSON.stringify(content);
-        if (stringified === '{}' && Object.keys(content).length > 0) {
-          return `[Object Content (keys: ${Object.keys(content).join(', ')})]`;
-        } else if (stringified === '{}' && Object.keys(content).length === 0) {
-           return "[Empty Object Content]";
-        }
-        return stringified;
-      } catch {
-        return "[Unstringifiable Object Content]";
-      }
-  }
-  return String(content) || defaultString;
-}
-
-
-const getSafeToastDescription = (error: any): string => {
-  if (error === null || error === undefined) {
-    return "An unknown error occurred.";
-  }
-  if (typeof error === 'string') return error || "An unknown error occurred.";
-  if (typeof error === 'number' || typeof error === 'boolean') return String(error);
-
-  let potentialMessageSource = error;
-  if (error instanceof Error && typeof error.message === 'string') {
-    potentialMessageSource = error.message;
-  }
-  
-  if (typeof potentialMessageSource === 'string') {
-    return potentialMessageSource || "An unknown error occurred.";
-  }
-
-  if (typeof potentialMessageSource === 'object' && potentialMessageSource !== null) {
-    if (Object.keys(potentialMessageSource).length === 1 &&
-        Object.prototype.hasOwnProperty.call(potentialMessageSource, 'prompt') &&
-        typeof potentialMessageSource.prompt === 'string') {
-      return potentialMessageSource.prompt || "Error: Malformed prompt object in error.";
-    }
-    
-    const nestedPrompt = findNestedPromptString(potentialMessageSource);
-    if (nestedPrompt !== null && typeof nestedPrompt === 'string') {
-      return nestedPrompt || "Error: Empty nested prompt in error object.";
-    }
-    
-    try {
-      const stringified = JSON.stringify(potentialMessageSource);
-      if (stringified === '{}' && Object.keys(potentialMessageSource).length > 0) {
-        return `[Object Error (keys: ${Object.keys(potentialMessageSource).join(', ')})]`;
-      } else if (stringified === '{}' && Object.keys(potentialMessageSource).length === 0) {
-        return "[Empty Error Object]";
-      }
-      return stringified;
-    } catch {
-      return "[Unstringifiable Error Object]";
-    }
-  }
-  
-  const finalMessage = String(potentialMessageSource);
-  return finalMessage || "An unknown error occurred.";
-};
-
 function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): string {
-  if (value === null || value === undefined) {
-    return `[${fieldName}: VALUE_IS_NULL_OR_UNDEFINED]`;
-  }
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
+  if (value === null || value === undefined) return `[${fieldName}: VALUE_IS_NULL_OR_UNDEFINED]`;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   if (typeof value === 'object') {
     if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, 'prompt') && typeof value.prompt === 'string') {
       return value.prompt || `[${fieldName}: EMPTY_PROMPT_IN_OBJECT]`;
     }
     const keys = Object.keys(value);
-    if (keys.length === 0) {
-        return `[${fieldName}: UNEXPECTED_EMPTY_OBJECT_ENCOUNTERED]`;
-    }
+    if (keys.length === 0) return `[${fieldName}: UNEXPECTED_EMPTY_OBJECT_ENCOUNTERED]`;
     return `[${fieldName}: UNEXPECTED_OBJECT_STRUCTURE_ENCOUNTERED (keys: ${keys.join(', ')})]`;
   }
   return `[${fieldName}: UNKNOWN_DATA_TYPE_ENCOUNTERED_(${typeof value})]`;
 }
 
-// This function is used to prepare string values for the ConfigurationPanel props
-// to ensure they are simple strings and not objects that might cause rendering issues.
-const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): string => {
-  if (value === null || value === undefined) {
-    return ""; 
+const getSafeToastDescription = (error: any): string => {
+  if (error === null || error === undefined) return "An unknown error occurred.";
+  if (typeof error === 'string') return error || "An unknown error occurred.";
+  if (typeof error === 'number' || typeof error === 'boolean') return String(error);
+  let potentialMessageSource = error;
+  if (error instanceof Error && typeof error.message === 'string') {
+    potentialMessageSource = error.message;
   }
-  if (typeof value === 'string') {
-    return value;
-  }
-  // Handle the specific case { prompt: "some string" } which was causing issues
-  if (typeof value === 'object' &&
-      value !== null && 
-      Object.prototype.hasOwnProperty.call(value, 'prompt') &&
-      typeof value.prompt === 'string' &&
-      Object.keys(value).length === 1) {
-    // If it's this specific object, extract the string.
-    // This helps if an upstream process inadvertently wraps a string this way.
-    return value.prompt || `[${fieldNameForPlaceholder}_HAD_EMPTY_PROMPT_IN_OBJECT]`;
-  }
-  // If it's any other object, it's unexpected for these config fields.
-  // Return a placeholder indicating an issue.
-  if (typeof value === 'object' && value !== null) { 
-    const keys = Object.keys(value);
-    if (keys.length === 0) {
-      return `[${fieldNameForPlaceholder}_WAS_EMPTY_OBJECT]`;
+  if (typeof potentialMessageSource === 'string') return potentialMessageSource || "An unknown error occurred.";
+  if (typeof potentialMessageSource === 'object' && potentialMessageSource !== null) {
+    if (Object.keys(potentialMessageSource).length === 1 && Object.prototype.hasOwnProperty.call(potentialMessageSource, 'prompt') && typeof potentialMessageSource.prompt === 'string') {
+      return potentialMessageSource.prompt || "Error: Malformed prompt object in error.";
     }
-    // This indicates an unexpected object structure was passed for a config string.
-    return `[${fieldNameForPlaceholder}_WAS_UNEXPECTED_OBJECT_TYPE (keys: ${keys.join(', ')})]`;
+    const nestedPrompt = findNestedPromptString(potentialMessageSource);
+    if (nestedPrompt !== null && typeof nestedPrompt === 'string') return nestedPrompt || "Error: Empty nested prompt in error object.";
+    try {
+      const stringified = JSON.stringify(potentialMessageSource);
+      if (stringified === '{}' && Object.keys(potentialMessageSource).length > 0) return `[Object Error (keys: ${Object.keys(potentialMessageSource).join(', ')})]`;
+      else if (stringified === '{}' && Object.keys(potentialMessageSource).length === 0) return "[Empty Error Object]";
+      return stringified;
+    } catch { return "[Unstringifiable Error Object]"; }
   }
-  // For other types (number, boolean), convert to string.
-  return String(value);
+  const finalMessage = String(potentialMessageSource);
+  return finalMessage || "An unknown error occurred.";
 };
 
-
 export default function Home() {
-  const [mode, setMode] = useState<EvaluationMode>('interactive');
+  const [uiMode, setUiMode] = useState<EvaluationMode>('interactive'); // interactive vs batch
   const [appConfig, setAppConfig] = useState<AppConfig>(initialAppConfig);
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -226,66 +135,72 @@ export default function Home() {
   const [batchResults, setBatchResults] = useState<ProcessedBatchItem[]>([]);
 
   const { toast } = useToast();
-
   const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  useEffect(() => { setIsClient(true); }, []);
 
-  const interpolatePrompt = (template: string, userPrompt: string): string => {
+  const interpolateTemplate = (template: string, userPrompt: string): string => {
     return template.replace(/\{\{prompt\}\}/g, userPrompt);
   };
 
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
-    
-    let cleanedUserInput = getCleanedPromptString(userInput);
-    let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserInput, 'UserPrompt_Interactive');
+    const cleanedUserPrompt = getCleanedPromptString(userInput);
+    let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserPrompt, 'UserPrompt_Interactive');
+
+    let responseA: string | null = null;
+    let responseB: string | null = null;
+    let evaluation: string | null = null;
 
     try {
-      const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
-      const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptForState);
+      const { runMode, modelAConfig, modelBConfig, evaluatorConfig } = appConfig;
 
-      const responses = await compareResponses({
-        promptA: fullPromptA,
-        promptB: fullPromptB,
-        systemInstruction: appConfig.systemInstruction,
-        ...appConfig.apiConfig,
-      });
+      if (runMode === 'a_only' || runMode === 'a_vs_b') {
+        const fullPromptA = interpolateTemplate(modelAConfig.promptTemplate, userPromptForState);
+        const genAResponse = await ai.generate({
+          prompt: fullPromptA,
+          systemInstruction: modelAConfig.systemInstruction,
+          config: modelAConfig.apiConfig,
+        });
+        responseA = forceStringOrVerySpecificPlaceholder(genAResponse.text, 'ResponseA_Interactive');
+      }
 
-      let finalResponseA = forceStringOrVerySpecificPlaceholder(responses.responseA, 'ResponseA_Interactive');
-      let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'ResponseB_Interactive');
+      if (runMode === 'b_only' || runMode === 'a_vs_b') {
+        const fullPromptB = interpolateTemplate(modelBConfig.promptTemplate, userPromptForState);
+        const genBResponse = await ai.generate({
+          prompt: fullPromptB,
+          systemInstruction: modelBConfig.systemInstruction,
+          config: modelBConfig.apiConfig,
+        });
+        responseB = forceStringOrVerySpecificPlaceholder(genBResponse.text, 'ResponseB_Interactive');
+      }
       
-      const evaluationResult = await evaluateResponse({
-        prompt: userPromptForState,
-        responseA: finalResponseA,
-        responseB: finalResponseB,
-      });
-      
-      let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation_Interactive');
-
-      if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = `[FINAL_OVERRIDE_USER_PROMPT_INTERACTIVE_WAS_OBJECT (${Object.keys(userPromptForState).join(',')})]`;
-      if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_RESPONSE_A_INTERACTIVE_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
-      if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = `[FINAL_OVERRIDE_RESPONSE_B_INTERACTIVE_WAS_OBJECT (${Object.keys(finalResponseB).join(',')})]`;
-      if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = `[FINAL_OVERRIDE_EVALUATION_INTERACTIVE_WAS_OBJECT (${Object.keys(finalEvaluation).join(',')})]`;
+      // If runMode was 'a_vs_b', then compareResponses was implicitly done by generating A and B above.
+      // Now, proceed to evaluation for all modes that produced at least one response.
+      if (responseA !== null || responseB !== null) {
+         const evalResult = await evaluateResponse({
+            prompt: userPromptForState, // The original user prompt
+            responseA: responseA, // Will be null if b_only
+            responseB: responseB, // Will be null if a_only
+            evaluatorPromptTemplate: evaluatorConfig.evaluationPromptTemplate,
+            evaluatorApiConfig: evaluatorConfig.apiConfig,
+        });
+        evaluation = forceStringOrVerySpecificPlaceholder(evalResult.evaluation, 'Evaluation_Interactive');
+      }
       
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
         userPrompt: userPromptForState,
-        responseA: finalResponseA,
-        responseB: finalResponseB,
-        evaluation: finalEvaluation,
+        responseA,
+        responseB,
+        evaluation,
         timestamp: new Date(),
+        runModeUsed: runMode,
       };
       setInteractiveHistory(prev => [newTurn, ...prev]);
 
     } catch (error) {
       if (isClient) {
-        toast({
-          variant: "destructive",
-          title: "Evaluation Error",
-          description: getSafeToastDescription(error),
-        });
+        toast({ variant: "destructive", title: "Evaluation Error", description: getSafeToastDescription(error) });
       }
     }
     setIsLoading(false);
@@ -296,115 +211,89 @@ export default function Home() {
     setBatchResults([]);
     setBatchProgress(0);
     const results: ProcessedBatchItem[] = [];
+    const { runMode, modelAConfig, modelBConfig, evaluatorConfig } = appConfig;
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
-      
       let cleanedItemPrompt = getCleanedPromptString(item.prompt);
       let promptForState = forceStringOrVerySpecificPlaceholder(cleanedItemPrompt, 'Prompt_BatchItem');
       let itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'ID_BatchItem');
-
+      
+      let responseA: string | null = null;
+      let responseB: string | null = null;
+      let evaluation: string | null = null;
 
       try {
-        const fullPromptA = interpolatePrompt(appConfig.promptATemplate, promptForState);
-        const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, promptForState);
+        if (runMode === 'a_only' || runMode === 'a_vs_b') {
+          const fullPromptA = interpolateTemplate(modelAConfig.promptTemplate, promptForState);
+          const genAResponse = await ai.generate({
+            prompt: fullPromptA,
+            systemInstruction: modelAConfig.systemInstruction,
+            config: modelAConfig.apiConfig,
+          });
+          responseA = forceStringOrVerySpecificPlaceholder(genAResponse.text, 'ResponseA_BatchItem');
+        }
 
-        const responses = await compareResponses({
-          promptA: fullPromptA,
-          promptB: fullPromptB,
-          systemInstruction: appConfig.systemInstruction,
-          ...appConfig.apiConfig,
-        });
-        
-        let finalResponseA = forceStringOrVerySpecificPlaceholder(responses.responseA, 'ResponseA_BatchItem');
-        let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'ResponseB_BatchItem');
+        if (runMode === 'b_only' || runMode === 'a_vs_b') {
+          const fullPromptB = interpolateTemplate(modelBConfig.promptTemplate, promptForState);
+          const genBResponse = await ai.generate({
+            prompt: fullPromptB,
+            systemInstruction: modelBConfig.systemInstruction,
+            config: modelBConfig.apiConfig,
+          });
+          responseB = forceStringOrVerySpecificPlaceholder(genBResponse.text, 'ResponseB_BatchItem');
+        }
 
-        const evaluationResult = await evaluateResponse({
-          prompt: promptForState,
-          responseA: finalResponseA,
-          responseB: finalResponseB,
-        });
-
-        let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation_BatchItem');
-        
-        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
-        if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
-        if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_BATCH_RSPA_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
-        if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = `[FINAL_OVERRIDE_BATCH_RSPB_WAS_OBJECT (${Object.keys(finalResponseB).join(',')})]`;
-        if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = `[FINAL_OVERRIDE_BATCH_EVAL_WAS_OBJECT (${Object.keys(finalEvaluation).join(',')})]`;
+        if (responseA !== null || responseB !== null) {
+          const evalResult = await evaluateResponse({
+            prompt: promptForState,
+            responseA: responseA,
+            responseB: responseB,
+            evaluatorPromptTemplate: evaluatorConfig.evaluationPromptTemplate,
+            evaluatorApiConfig: evaluatorConfig.apiConfig,
+          });
+          evaluation = forceStringOrVerySpecificPlaceholder(evalResult.evaluation, 'Evaluation_BatchItem');
+        }
         
         results.push({
-          id: itemIdForState,
-          prompt: promptForState,
-          responseA: finalResponseA,
-          responseB: finalResponseB,
-          evaluation: finalEvaluation,
-          timestamp: new Date(),
+          id: itemIdForState, prompt: promptForState, responseA, responseB, evaluation,
+          timestamp: new Date(), runModeUsed: runMode,
         });
 
       } catch (error) {
-        let errorDescriptionAttempt = getSafeToastDescription(error);
-        let errorDescriptionForState = forceStringOrVerySpecificPlaceholder(errorDescriptionAttempt, 'ErrorDesc_BatchItem');
-        
-        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
-        if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
-        if (typeof errorDescriptionForState === 'object' && errorDescriptionForState !== null) errorDescriptionForState = `[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT (${Object.keys(errorDescriptionForState).join(',')})]`;
-        
+        let errorDescriptionForState = forceStringOrVerySpecificPlaceholder(getSafeToastDescription(error), 'ErrorDesc_BatchItem');
         results.push({
-          id: itemIdForState,
-          prompt: promptForState,
-          error: errorDescriptionForState,
-          timestamp: new Date(),
+          id: itemIdForState, prompt: promptForState, error: errorDescriptionForState,
+          timestamp: new Date(), runModeUsed: runMode,
         });
         if (isClient) {
-           toast({
-            variant: "destructive",
-            title: `Error processing item ${itemIdForState}`,
-            description: errorDescriptionForState,
-          });
+          toast({ variant: "destructive", title: `Error processing item ${itemIdForState}`, description: errorDescriptionForState });
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]); 
+      setBatchResults([...results]);
     }
 
     setBatchIsLoading(false);
-     if (isClient) {
-        toast({
-          title: "Batch Processing Complete",
-          description: `${results.length} prompts evaluated.`,
-        });
-      }
+    if (isClient) {
+      toast({ title: "Batch Processing Complete", description: `${results.length} prompts processed.` });
+    }
   };
-  
-  // Prepare a version of appConfig to pass to ConfigurationPanel.
-  // This ensures that fields expected to be strings are indeed strings.
-  const sanitizedAppConfigForPanel: AppConfig = {
-    systemInstruction: getSafeConfigString(appConfig.systemInstruction, 'SystemInstruction'),
-    promptATemplate: getSafeConfigString(appConfig.promptATemplate, 'PromptATemplate'),
-    promptBTemplate: getSafeConfigString(appConfig.promptBTemplate, 'PromptBTemplate'),
-    apiConfig: { // API config values are numbers, so they are passed as is.
-        temperature: appConfig.apiConfig.temperature,
-        topK: appConfig.apiConfig.topK,
-        maxOutputTokens: appConfig.apiConfig.maxOutputTokens,
-    },
-  };
-
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Sheet open={isConfigPanelOpen} onOpenChange={setIsConfigPanelOpen}>
         <AppHeader />
         <ConfigurationPanel
-          config={sanitizedAppConfigForPanel}
+          config={appConfig} // Pass the full, structured config
           onConfigChange={setAppConfig}
         />
       </Sheet>
 
-      <ModeSwitcher currentMode={mode} onModeChange={setMode} />
+      <ModeSwitcher currentMode={uiMode} onModeChange={setUiMode} />
 
       <main className="flex-grow container mx-auto w-full max-w-7xl flex flex-col overflow-hidden">
-        {mode === 'interactive' ? (
+        {uiMode === 'interactive' ? (
           <InteractiveMode
             history={interactiveHistory}
             onSubmitPrompt={handleInteractiveSubmit}
@@ -422,7 +311,7 @@ export default function Home() {
 
       <footer className="container mx-auto w-full max-w-7xl py-2 sticky bottom-0 bg-background/80 backdrop-blur-sm border-t">
          <DownloadPanel
-            mode={mode}
+            mode={uiMode}
             interactiveHistory={interactiveHistory}
             batchResults={batchResults}
             isDisabled={isLoading || batchIsLoading}
@@ -431,12 +320,3 @@ export default function Home() {
     </div>
   );
 }
-    
-
-    
-
-
-
-
-
-    

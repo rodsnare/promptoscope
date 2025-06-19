@@ -1,3 +1,4 @@
+
 import type { ConversationTurn, ProcessedBatchItem } from '@/types';
 
 export function downloadJson(data: unknown, filename: string) {
@@ -42,22 +43,25 @@ export function downloadCsv(data: Record<string, any>[], filename: string) {
 
 export function formatInteractiveHistoryForCsv(history: ConversationTurn[]): Record<string, any>[] {
   return history.map((turn, index) => ({
-    question_number: index + 1,
-    prompt: turn.userPrompt,
-    response_A: turn.responseA,
-    response_B: turn.responseB,
-    eval_response: turn.evaluation,
+    turn_id: turn.id,
+    question_number: index + 1, // Retain for sequence if needed
+    user_prompt: turn.userPrompt,
+    run_mode: turn.runModeUsed ?? 'N/A',
+    response_A: turn.responseA ?? '',
+    response_B: turn.responseB ?? '',
+    evaluation: turn.evaluation ?? '',
     timestamp: turn.timestamp.toISOString(),
   }));
 }
 
 export function formatBatchResultsForCsv(results: ProcessedBatchItem[]): Record<string, any>[] {
   return results.map(item => ({
-    question_number: item.id,
+    item_id: item.id,
     prompt: item.prompt,
+    run_mode: item.runModeUsed ?? 'N/A',
     response_A: item.responseA ?? '',
     response_B: item.responseB ?? '',
-    eval_response: item.evaluation ?? '',
+    evaluation: item.evaluation ?? '',
     error: item.error ?? '',
     timestamp: item.timestamp.toISOString(),
   }));
