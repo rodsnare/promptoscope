@@ -372,8 +372,23 @@ export default function Home() {
     systemInstruction: getSafeConfigString(appConfig.systemInstruction, 'SystemInstruction'),
     promptATemplate: getSafeConfigString(appConfig.promptATemplate, 'PromptATemplate'),
     promptBTemplate: getSafeConfigString(appConfig.promptBTemplate, 'PromptBTemplate'),
-    apiConfig: appConfig.apiConfig, 
+    apiConfig: {
+        temperature: appConfig.apiConfig.temperature,
+        topK: appConfig.apiConfig.topK,
+        maxOutputTokens: appConfig.apiConfig.maxOutputTokens,
+    },
   };
+
+  // Re-added console logs for final verification pass
+  if (isConfigPanelOpen && isClient) {
+    console.log("--- DEBUG: CONFIG PANEL STATE (page.tsx) ---");
+    console.log("Raw appConfig:", appConfig);
+    console.log("Sanitized appConfig for panel:", sanitizedAppConfigForPanel);
+    console.log("Type of sanitized systemInstruction:", typeof sanitizedAppConfigForPanel.systemInstruction, "Value:", sanitizedAppConfigForPanel.systemInstruction);
+    console.log("Type of sanitized promptATemplate:", typeof sanitizedAppConfigForPanel.promptATemplate, "Value:", sanitizedAppConfigForPanel.promptATemplate);
+    console.log("Type of sanitized promptBTemplate:", typeof sanitizedAppConfigForPanel.promptBTemplate, "Value:", sanitizedAppConfigForPanel.promptBTemplate);
+    console.log("---------------------------------");
+  }
 
 
   return (
@@ -419,4 +434,5 @@ export default function Home() {
     
 
     
+
 

@@ -24,18 +24,19 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (name in config.apiConfig) {
+    if (name === 'temperature' || name === 'topK' || name === 'maxOutputTokens') {
       onConfigChange({
         ...config,
         apiConfig: {
           ...config.apiConfig,
-          [name]: name === 'temperature' || name === 'topK' ? parseFloat(value) : parseInt(value, 10),
+          [name]: value === '' ? undefined : parseFloat(value), // Keep undefined if empty, else parse
         },
       });
     } else {
       onConfigChange({ ...config, [name]: value });
     }
   };
+
 
   if (!isClient) {
     return (
@@ -95,12 +96,10 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               className="mt-1 min-h-[100px] font-code"
               rows={4}
             />
-            {/* Using a div with explicit string expression for the descriptive text */}
-            <div className="text-sm text-muted-foreground mt-1">{'A very simple text.'}</div>
+            <div className="text-sm text-muted-foreground mt-1">{'To use the user\'s input in Prompt A, include the placeholder {{prompt}}.'}</div>
           </div>
           
-          {/* Prompt B Template Section (Commented out) */}
-          {/*
+          {/* Prompt B Template Section */}
           <div>
             <Label htmlFor="promptBTemplate" className="text-lg font-semibold">Prompt B Template</Label>
             <Textarea
@@ -112,12 +111,10 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               className="mt-1 min-h-[100px] font-code"
               rows={4}
             />
-            <p className="text-sm text-muted-foreground mt-1">Enter the template for Prompt B. Use {{prompt}} for user input.</p>
+            <div className="text-sm text-muted-foreground mt-1">{'For Prompt B, also use {{prompt}} to insert the user\'s original query.'}</div>
           </div>
-          */}
           
-          {/* API Parameters Section (Commented out) */}
-          {/*
+          {/* API Parameters Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">API Parameters</h3>
             <div>
@@ -126,11 +123,12 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                 id="temperature"
                 name="temperature"
                 type="number"
-                value={config.apiConfig.temperature}
+                value={config.apiConfig.temperature ?? ''}
                 onChange={handleInputChange}
                 step="0.1"
                 min="0"
                 max="2"
+                placeholder="e.g., 0.7"
                 className="mt-1 font-code"
               />
             </div>
@@ -140,10 +138,11 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                 id="topK"
                 name="topK"
                 type="number"
-                value={config.apiConfig.topK}
+                value={config.apiConfig.topK ?? ''}
                 onChange={handleInputChange}
                 step="1"
                 min="1"
+                placeholder="e.g., 40"
                 className="mt-1 font-code"
               />
             </div>
@@ -153,15 +152,15 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                 id="maxOutputTokens"
                 name="maxOutputTokens"
                 type="number"
-                value={config.apiConfig.maxOutputTokens}
+                value={config.apiConfig.maxOutputTokens ?? ''}
                 onChange={handleInputChange}
                 step="1"
                 min="1"
+                placeholder="e.g., 1024"
                 className="mt-1 font-code"
               />
             </div>
           </div>
-          */}
         </div>
       </ScrollArea>
       <SheetFooter>
