@@ -5,23 +5,28 @@ import { Separator } from '@/components/ui/separator';
 import type { ConversationTurn } from '@/types';
 import { Bot, UserCircle, CheckSquare } from 'lucide-react';
 
-// Helper for AI responses & evaluation - expects data to be pre-cleaned to string in page.tsx
-const renderCleanedString = (content: string | undefined | null, defaultText: string = "N/A"): string => {
-  return content && typeof content === 'string' && content.trim() ? content : defaultText;
+// Helper for AI responses & evaluation - expects data to be stringified in page.tsx
+const renderPreCleanedString = (content: string | undefined | null, defaultText: string = "N/A"): string => {
+  // Assumes content is already a string due to ensureStringContent in page.tsx
+  return content || defaultText;
 };
 
 // Robust helper for the main user prompt, as it comes more directly from input
-const getDisplayableUserPrompt = (promptInput: any): string => {
-  if (typeof promptInput === 'string') {
-    return promptInput || "No user prompt";
+const getDisplayableUserPrompt = (promptContent: any): string => {
+  if (typeof promptContent === 'string') {
+    return promptContent || "No user prompt";
   }
-  if (promptInput === null || promptInput === undefined) {
+  if (promptContent === null || promptContent === undefined) {
     return "No user prompt";
   }
-  if (typeof promptInput === 'object' && promptInput.hasOwnProperty('prompt') && typeof promptInput.prompt === 'string') {
-    return promptInput.prompt || "No user prompt";
+  // Explicitly handle {prompt: "string_value"} where 'prompt' is the ONLY key
+  if (typeof promptContent === 'object' && promptContent !== null &&
+      Object.keys(promptContent).length === 1 &&
+      promptContent.hasOwnProperty('prompt') &&
+      typeof promptContent.prompt === 'string') {
+    return promptContent.prompt || "No user prompt";
   }
-  // console.warn('getDisplayableUserPrompt: Rendering placeholder for unexpected prompt structure:', JSON.stringify(promptInput));
+  // console.warn('getDisplayableUserPrompt: Rendering placeholder for unexpected prompt structure:', JSON.stringify(promptContent));
   return "[Invalid User Prompt Format]";
 };
 
@@ -49,7 +54,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model A Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-              {renderCleanedString(turn.responseA, "No response from Model A")}
+              {renderPreCleanedString(turn.responseA, "No response from Model A")}
             </div>
           </div>
           <div>
@@ -57,7 +62,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model B Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-              {renderCleanedString(turn.responseB, "No response from Model B")}
+              {renderPreCleanedString(turn.responseB, "No response from Model B")}
             </div>
           </div>
         </div>
@@ -69,7 +74,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
             <CheckSquare className="mr-2 h-5 w-5" /> Evaluation
           </h3>
           <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-            {renderCleanedString(turn.evaluation, "No evaluation")}
+            {renderPreCleanedString(turn.evaluation, "No evaluation available")}
           </div>
         </div>
       </CardContent>

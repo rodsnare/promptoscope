@@ -46,13 +46,22 @@ export default function Home() {
   }, []);
 
   const getCleanedPromptString = (promptInput: any): string => {
-    if (typeof promptInput === 'object' && promptInput !== null && 'prompt' in promptInput && typeof promptInput.prompt === 'string') {
-      return promptInput.prompt;
+    if (typeof promptInput === 'string') {
+      return promptInput;
     }
     if (promptInput === null || promptInput === undefined) {
       return "";
     }
-    return String(promptInput);
+    // Explicitly handle {prompt: "string_value"} if it comes as input, and it's the *only* key.
+    if (typeof promptInput === 'object' && promptInput !== null &&
+        Object.keys(promptInput).length === 1 && 
+        promptInput.hasOwnProperty('prompt') &&
+        typeof promptInput.prompt === 'string') {
+      return promptInput.prompt;
+    }
+    // Fallback for other types - this might be risky if an unexpected object comes.
+    // console.warn(`getCleanedPromptString: Unexpected promptInput type: ${typeof promptInput}. Converting to string. Value:`, promptInput);
+    return String(promptInput); 
   };
   
   const getSafeToastDescription = (error: any): string => {
@@ -72,27 +81,32 @@ export default function Home() {
     }
   };
 
-  const ensureStringContent = (content: any, defaultString: string = "No content"): string => {
+  const ensureStringContent = (content: any, defaultString: string = "No content provided"): string => {
     if (typeof content === 'string') {
-      return content || defaultString;
+      return content || defaultString; // Handles empty string by returning default
     }
     if (content === null || content === undefined) {
       return defaultString;
     }
-    // Specifically check for { prompt: "string_value" }
-    if (typeof content === 'object' && content !== null && 'prompt' in content && typeof content.prompt === 'string') {
-      return content.prompt || defaultString;
+    // Explicitly handle {prompt: "string_value"} where 'prompt' is the ONLY key
+    if (typeof content === 'object' && content !== null &&
+        Object.keys(content).length === 1 && 
+        content.hasOwnProperty('prompt') &&
+        typeof content.prompt === 'string') {
+      return content.prompt || defaultString; // Handles empty prompt string
     }
-    // Handle other objects by trying to stringify them
+    // Handle other objects
     if (typeof content === 'object' && content !== null) {
-      // console.warn('ensureStringContent: Converting unexpected object to string:', content);
+      // console.warn('ensureStringContent: Attempting to stringify unexpected object:', content);
       try {
+        // If it's an object but not the simple {prompt: string} structure, stringify it.
         return JSON.stringify(content);
-      } catch {
-        return "[Unstringifiable Object]";
+      } catch (e) {
+        // console.error('ensureStringContent: Failed to stringify object.', e);
+        return `[Unstringifiable Object: Keys: ${Object.keys(content).join(', ')}]`;
       }
     }
-    // Handle other primitives like numbers or booleans
+    // Handle other primitives (numbers, booleans)
     return String(content);
   };
 
@@ -118,8 +132,8 @@ export default function Home() {
 
       const evaluationResult = await evaluateResponse({
         prompt: userPromptString, 
-        responseA: responses.responseA,
-        responseB: responses.responseB,
+        responseA: responses.responseA, // Raw response from AI
+        responseB: responses.responseB, // Raw response from AI
       });
 
       const newTurn: ConversationTurn = {
@@ -127,7 +141,7 @@ export default function Home() {
         userPrompt: userPromptString, // Already cleaned
         responseA: ensureStringContent(responses.responseA, "No response from Model A"),
         responseB: ensureStringContent(responses.responseB, "No response from Model B"),
-        evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation"),
+        evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
         timestamp: new Date(),
       };
       setInteractiveHistory(prev => [newTurn, ...prev]);
@@ -138,7 +152,7 @@ export default function Home() {
         toast({
           variant: "destructive",
           title: "Evaluation Error",
-          description: getSafeToastDescription(error), // Toast description is handled by its own safe stringifier
+          description: getSafeToastDescription(error), 
         });
       }
     }
@@ -153,7 +167,9 @@ export default function Home() {
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
-      const userPromptString = getCleanedPromptString(item.prompt);
+      // item.prompt here comes from the JSON file, item.id too.
+      // getCleanedPromptString should handle if item.prompt is {prompt:"..."}
+      const userPromptString = getCleanedPromptString(item.prompt); 
 
       try {
         const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
@@ -168,25 +184,25 @@ export default function Home() {
 
         const evaluationResult = await evaluateResponse({
           prompt: userPromptString,
-          responseA: responses.responseA,
-          responseB: responses.responseB,
+          responseA: responses.responseA, // Raw response
+          responseB: responses.responseB, // Raw response
         });
         
         results.push({
-          ...item, // item.id is part of item
-          prompt: userPromptString, // Already cleaned
+          id: item.id, // item.id is passed as-is to BatchItemCard
+          prompt: userPromptString, // Cleaned prompt string
           responseA: ensureStringContent(responses.responseA, "No response from Model A"),
           responseB: ensureStringContent(responses.responseB, "No response from Model B"),
-          evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation"),
+          evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
           timestamp: new Date(),
         });
 
       } catch (error) {
         console.error(`Error processing batch item ${item.id}:`, error);
         results.push({
-          ...item,
+          id: item.id,
           prompt: userPromptString,
-          // Ensure the 'error' field in the state is also a robust string
+          // getSafeToastDescription for error string, then ensureStringContent as a final guarantee.
           error: ensureStringContent(getSafeToastDescription(error), "An error occurred during processing."),
           timestamp: new Date(),
         });
