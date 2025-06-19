@@ -34,17 +34,17 @@ const ensureStringForConfig = (content: any, fieldNameForDebug: string): string 
   // Check for the specific problematic object {prompt: "string"}
   if (
     typeof content === 'object' &&
-    content !== null && 
+    content !== null &&
     Object.prototype.hasOwnProperty.call(content, 'prompt') &&
-    typeof (content as { prompt: any }).prompt === 'string' && 
-    Object.keys(content).length === 1 
+    typeof (content as { prompt: any }).prompt === 'string' &&
+    Object.keys(content).length === 1
   ) {
     const promptValue = (content as { prompt: string }).prompt;
     console.warn(`ConfigurationPanel: ensureStringForConfig for ${fieldNameForDebug} received {{prompt: "string"}}, returning inner prompt: "${promptValue}"`, content);
     return promptValue || `[${fieldNameForDebug}_HAD_EMPTY_PROMPT_IN_OBJECT]`;
   }
   // For any other object type, return a placeholder
-  if (typeof content === 'object' && content !== null) { 
+  if (typeof content === 'object' && content !== null) {
     const keys = Object.keys(content);
     const placeholder = `[${fieldNameForDebug}_WAS_UNEXPECTED_OBJECT_TYPE (keys: ${keys.join(', ')})]`;
     console.error(`ConfigurationPanel: ensureStringForConfig for ${fieldNameForDebug} received UNEXPECTED object, returning placeholder: "${placeholder}"`, content);
@@ -99,9 +99,9 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
       onConfigChange({ ...config, [name]: value });
     }
   };
-  
+
   const systemInstructionValue = ensureStringForConfig(config.systemInstruction, 'config.systemInstruction_for_textarea');
-  const promptATemplateValue = ensureStringForConfig(config.promptATemplate, 'config.promptATemplate_for_textarea');
+  // const promptATemplateValue = ensureStringForConfig(config.promptATemplate, 'config.promptATemplate_for_textarea');
   // const promptBTemplateValue = ensureStringForConfig(config.promptBTemplate, 'config.promptBTemplate_for_textarea');
 
 
@@ -129,13 +129,13 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               />
             </div>
 
-            
+
             <div>
               <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
               <Textarea
                 id="promptATemplate"
                 name="promptATemplate"
-                value={promptATemplateValue}
+                value={"This is a hardcoded test string for Prompt A"}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model A."
                 className="mt-1 min-h-[100px] font-code"
@@ -220,3 +220,5 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 };
 
 export default ConfigurationPanel;
+
+    
