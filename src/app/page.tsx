@@ -71,7 +71,6 @@ function getCleanedPromptString(promptInput: any): string {
   if (typeof promptInput === 'object' && promptInput !== null) {
     return "[Invalid Prompt Structure]";
   }
-  // Fallback for other types (e.g. function, symbol)
   return String(promptInput);
 }
 
@@ -200,7 +199,6 @@ export default function Home() {
   }, []);
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
-    // Ensure userPrompt is a string for interpolation
     const safeUserPrompt = typeof userPrompt === 'string' ? userPrompt : '[Invalid User Prompt for Interpolation]';
     return template.replace(/\{\{prompt\}\}/g, safeUserPrompt);
   };
@@ -221,22 +219,43 @@ export default function Home() {
         ...appConfig.apiConfig,
       });
 
-      const rawResponseA = responses.responseA;
-      const rawResponseB = responses.responseB;
-
       const evaluationResult = await evaluateResponse({
-        prompt: userPromptForState, // Already a string
-        responseA: forceStringOrVerySpecificPlaceholder(rawResponseA, 'RawResponseAForEval'), 
-        responseB: forceStringOrVerySpecificPlaceholder(rawResponseB, 'RawResponseBForEval'),
+        prompt: userPromptForState, 
+        responseA: forceStringOrVerySpecificPlaceholder(responses.responseA, 'RawResponseAForEval'), 
+        responseB: forceStringOrVerySpecificPlaceholder(responses.responseB, 'RawResponseBForEval'),
       });
       
-      const rawEvaluation = evaluationResult.evaluation;
+      let processedResponseA: any = responses.responseA;
+      if (typeof processedResponseA === 'object' && processedResponseA !== null && Object.keys(processedResponseA).length === 1 && Object.prototype.hasOwnProperty.call(processedResponseA, 'prompt') && typeof processedResponseA.prompt === 'string') {
+        processedResponseA = processedResponseA.prompt;
+      } else if (typeof processedResponseA === 'object' && processedResponseA !== null) {
+        processedResponseA = "[Object Response A - PreForce]";
+      } else if (processedResponseA === null || processedResponseA === undefined) {
+        processedResponseA = "[Null/Undefined Response A - PreForce]";
+      }
 
-      let finalResponseA = forceStringOrVerySpecificPlaceholder(rawResponseA, 'ResponseA');
-      let finalResponseB = forceStringOrVerySpecificPlaceholder(rawResponseB, 'ResponseB');
-      let finalEvaluation = forceStringOrVerySpecificPlaceholder(rawEvaluation, 'Evaluation');
+      let processedResponseB: any = responses.responseB;
+      if (typeof processedResponseB === 'object' && processedResponseB !== null && Object.keys(processedResponseB).length === 1 && Object.prototype.hasOwnProperty.call(processedResponseB, 'prompt') && typeof processedResponseB.prompt === 'string') {
+        processedResponseB = processedResponseB.prompt;
+      } else if (typeof processedResponseB === 'object' && processedResponseB !== null) {
+        processedResponseB = "[Object Response B - PreForce]";
+      } else if (processedResponseB === null || processedResponseB === undefined) {
+        processedResponseB = "[Null/Undefined Response B - PreForce]";
+      }
 
-      // Final safety net: Ensure all parts of the turn are strings.
+      let processedEvaluation: any = evaluationResult.evaluation;
+      if (typeof processedEvaluation === 'object' && processedEvaluation !== null && Object.keys(processedEvaluation).length === 1 && Object.prototype.hasOwnProperty.call(processedEvaluation, 'prompt') && typeof processedEvaluation.prompt === 'string') {
+        processedEvaluation = processedEvaluation.prompt;
+      } else if (typeof processedEvaluation === 'object' && processedEvaluation !== null) {
+        processedEvaluation = "[Object Evaluation - PreForce]";
+      } else if (processedEvaluation === null || processedEvaluation === undefined) {
+        processedEvaluation = "[Null/Undefined Evaluation - PreForce]";
+      }
+
+      let finalResponseA = forceStringOrVerySpecificPlaceholder(processedResponseA, 'ResponseA');
+      let finalResponseB = forceStringOrVerySpecificPlaceholder(processedResponseB, 'ResponseB');
+      let finalEvaluation = forceStringOrVerySpecificPlaceholder(processedEvaluation, 'Evaluation');
+
       if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in userPromptForState override]";
       if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA override]";
       if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB override]";
@@ -276,7 +295,6 @@ export default function Home() {
       let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedItemPrompt, 'BatchItemPrompt');
       const itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID');
 
-
       try {
         const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
         const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptForState);
@@ -288,22 +306,43 @@ export default function Home() {
           ...appConfig.apiConfig,
         });
         
-        const rawResponseA = responses.responseA;
-        const rawResponseB = responses.responseB;
-
         const evaluationResult = await evaluateResponse({
           prompt: userPromptForState, 
-          responseA: forceStringOrVerySpecificPlaceholder(rawResponseA, 'RawResponseAForBatchEval'),
-          responseB: forceStringOrVerySpecificPlaceholder(rawResponseB, 'RawResponseBForBatchEval'),
+          responseA: forceStringOrVerySpecificPlaceholder(responses.responseA, 'RawResponseAForBatchEval'),
+          responseB: forceStringOrVerySpecificPlaceholder(responses.responseB, 'RawResponseBForBatchEval'),
         });
 
-        const rawEvaluation = evaluationResult.evaluation;
+        let processedResponseA: any = responses.responseA;
+        if (typeof processedResponseA === 'object' && processedResponseA !== null && Object.keys(processedResponseA).length === 1 && Object.prototype.hasOwnProperty.call(processedResponseA, 'prompt') && typeof processedResponseA.prompt === 'string') {
+          processedResponseA = processedResponseA.prompt;
+        } else if (typeof processedResponseA === 'object' && processedResponseA !== null) {
+          processedResponseA = "[Object Batch Response A - PreForce]";
+        } else if (processedResponseA === null || processedResponseA === undefined) {
+          processedResponseA = "[Null/Undefined Batch Response A - PreForce]";
+        }
 
-        let finalResponseA = forceStringOrVerySpecificPlaceholder(rawResponseA, 'BatchResponseA');
-        let finalResponseB = forceStringOrVerySpecificPlaceholder(rawResponseB, 'BatchResponseB');
-        let finalEvaluation = forceStringOrVerySpecificPlaceholder(rawEvaluation, 'BatchEvaluation');
+        let processedResponseB: any = responses.responseB;
+        if (typeof processedResponseB === 'object' && processedResponseB !== null && Object.keys(processedResponseB).length === 1 && Object.prototype.hasOwnProperty.call(processedResponseB, 'prompt') && typeof processedResponseB.prompt === 'string') {
+          processedResponseB = processedResponseB.prompt;
+        } else if (typeof processedResponseB === 'object' && processedResponseB !== null) {
+          processedResponseB = "[Object Batch Response B - PreForce]";
+        } else if (processedResponseB === null || processedResponseB === undefined) {
+          processedResponseB = "[Null/Undefined Batch Response B - PreForce]";
+        }
+
+        let processedEvaluation: any = evaluationResult.evaluation;
+        if (typeof processedEvaluation === 'object' && processedEvaluation !== null && Object.keys(processedEvaluation).length === 1 && Object.prototype.hasOwnProperty.call(processedEvaluation, 'prompt') && typeof processedEvaluation.prompt === 'string') {
+          processedEvaluation = processedEvaluation.prompt;
+        } else if (typeof processedEvaluation === 'object' && processedEvaluation !== null) {
+          processedEvaluation = "[Object Batch Evaluation - PreForce]";
+        } else if (processedEvaluation === null || processedEvaluation === undefined) {
+          processedEvaluation = "[Null/Undefined Batch Evaluation - PreForce]";
+        }
         
-        // Final safety net for batch items
+        let finalResponseA = forceStringOrVerySpecificPlaceholder(processedResponseA, 'BatchResponseA');
+        let finalResponseB = forceStringOrVerySpecificPlaceholder(processedResponseB, 'BatchResponseB');
+        let finalEvaluation = forceStringOrVerySpecificPlaceholder(processedEvaluation, 'BatchEvaluation');
+        
         if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in batch userPromptForState override]";
         if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA for batch override]";
         if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB for batch override]";
@@ -322,7 +361,6 @@ export default function Home() {
         let errorDescription = getSafeToastDescription(error);
         let errorForState = forceStringOrVerySpecificPlaceholder(errorDescription, 'BatchItemError');
 
-        // Final safety net for error string
         if (typeof errorForState === 'object' && errorForState !== null) errorForState = "[Object detected in errorForState override]";
         
         results.push({
@@ -340,7 +378,7 @@ export default function Home() {
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]); // Update results incrementally for better UX
+      setBatchResults([...results]);
     }
 
     setBatchIsLoading(false);
