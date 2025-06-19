@@ -379,18 +379,6 @@ export default function Home() {
     },
   };
 
-  // Re-added console logs for final verification pass
-  if (isConfigPanelOpen && isClient) {
-    console.log("--- DEBUG: CONFIG PANEL STATE (page.tsx) ---");
-    console.log("Raw appConfig:", appConfig);
-    console.log("Sanitized appConfig for panel:", sanitizedAppConfigForPanel);
-    console.log("Type of sanitized systemInstruction:", typeof sanitizedAppConfigForPanel.systemInstruction, "Value:", sanitizedAppConfigForPanel.systemInstruction);
-    console.log("Type of sanitized promptATemplate:", typeof sanitizedAppConfigForPanel.promptATemplate, "Value:", sanitizedAppConfigForPanel.promptATemplate);
-    console.log("Type of sanitized promptBTemplate:", typeof sanitizedAppConfigForPanel.promptBTemplate, "Value:", sanitizedAppConfigForPanel.promptBTemplate);
-    console.log("---------------------------------");
-  }
-
-
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Sheet open={isConfigPanelOpen} onOpenChange={setIsConfigPanelOpen}>
@@ -434,5 +422,6 @@ export default function Home() {
     
 
     
+
 
 
