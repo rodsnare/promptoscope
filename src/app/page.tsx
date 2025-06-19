@@ -55,18 +55,20 @@ const getCleanedPromptString = (promptInput: any): string => {
 
   if (promptInput === null || promptInput === undefined) {
     result = "";
+  } else if (
+    typeof promptInput === 'object' &&
+    Object.keys(promptInput).length === 1 &&
+    Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
+    typeof promptInput.prompt === 'string'
+  ) {
+    result = promptInput.prompt;
   } else if (typeof promptInput === 'string') {
     result = promptInput;
   } else if (typeof promptInput === 'number' || typeof promptInput === 'boolean') {
     result = String(promptInput);
   } else if (typeof promptInput === 'object') {
-    // Prioritize direct check for {prompt: "string_value"}
-    if (Object.keys(promptInput).length === 1 && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string') {
-      result = promptInput.prompt;
-    } else {
-      // If not the simple {prompt: "..."} structure, use placeholder for this function's purpose
-      result = "[Invalid Prompt Structure]"; 
-    }
+    // Fallback for other object structures after direct check
+    result = "[Invalid Prompt Structure]"; 
   } else {
     result = String(promptInput); // Fallback for other types
   }
@@ -84,26 +86,30 @@ const ensureStringContent = (content: any, defaultString: string = "No content p
 
   if (content === null || content === undefined) {
     result = defaultString;
+  } else if (
+    typeof content === 'object' &&
+    Object.keys(content).length === 1 &&
+    Object.prototype.hasOwnProperty.call(content, 'prompt') &&
+    typeof content.prompt === 'string'
+   ) {
+    result = content.prompt || defaultString;
   } else if (typeof content === 'string') {
     result = content || defaultString;
   } else if (typeof content === 'number' || typeof content === 'boolean') {
     result = String(content);
   } else if (typeof content === 'object') {
-    // Prioritize direct check for {prompt: "string_value"}
-    if (Object.keys(content).length === 1 && Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
-      result = content.prompt || defaultString;
-    } else {
-      // For other objects, try to stringify
-      try {
-        const str = JSON.stringify(content);
-        if (str === '{}') {
-          result = `[Empty Object]`;
-        } else {
-          result = str;
-        }
-      } catch (e) {
-        result = "[Unstringifiable Object Content]";
+    // For other objects, try to stringify
+    try {
+      const str = JSON.stringify(content);
+      if (str === '{}' && Object.keys(content).length === 0) {
+         result = `[Empty Object Content]`;
+      } else if (str === '{}' && Object.keys(content).length > 0) {
+         result = `[Object Content (keys: ${Object.keys(content).join(', ')})]`;
+      } else {
+        result = str;
       }
+    } catch (e) {
+      result = "[Unstringifiable Object Content]";
     }
   } else {
     result = String(content); // Fallback for other types
@@ -129,7 +135,6 @@ const getSafeToastDescription = (error: any): string => {
   } else if (error instanceof Error) {
     let messageToDisplay: string | null = null;
     if (typeof error.message === 'object' && error.message !== null) {
-        // Prioritize direct check for error.message being {prompt: "..."}
         if (Object.keys(error.message).length === 1 && Object.prototype.hasOwnProperty.call(error.message, 'prompt') && typeof error.message.prompt === 'string') {
             messageToDisplay = error.message.prompt;
         } else {
@@ -141,26 +146,24 @@ const getSafeToastDescription = (error: any): string => {
         result = messageToDisplay;
     } else if (typeof error.message === 'string') {
         result = error.message;
-    } else { 
-        // error.message was an object but no usable prompt string found
+    } else if (typeof error.message === 'object' && error.message !== null) { 
         try {
             const stringifiedMessage = JSON.stringify(error.message);
             result = stringifiedMessage === '{}' ? "[Empty Error Message Object]" : stringifiedMessage;
         } catch {
             result = "Failed to stringify error.message object.";
         }
+    } else {
+        result = "Error message is of an unexpected type.";
     }
   } else if (typeof error === 'object') {
-    // Prioritize direct check for error itself being {prompt: "..."}
     if (Object.keys(error).length === 1 && Object.prototype.hasOwnProperty.call(error, 'prompt') && typeof error.prompt === 'string') {
         result = error.prompt;
     } else {
-        // Fallback to findNestedPromptString for other object structures
         const nestedPrompt = findNestedPromptString(error);
         if (nestedPrompt !== null) {
           result = nestedPrompt;
         } else {
-          // If still no direct 'prompt' string found, try to stringify
           try {
             const stringifiedError = JSON.stringify(error);
             result = stringifiedError === '{}' ? "[Empty Error Object]" : stringifiedError;
@@ -275,7 +278,7 @@ export default function Home() {
         });
 
         results.push({
-          id: String(item.id), // Ensure id is a string for consistency in ProcessedBatchItem
+          id: String(item.id), 
           prompt: userPromptString, 
           responseA: ensureStringContent(responses.responseA, "No response from Model A"),
           responseB: ensureStringContent(responses.responseB, "No response from Model B"),
@@ -285,15 +288,15 @@ export default function Home() {
 
       } catch (error) {
         results.push({
-          id: String(item.id), // Ensure id is a string
+          id: String(item.id), 
           prompt: userPromptString, 
-          error: getSafeToastDescription(error), // error is processed by getSafeToastDescription
+          error: getSafeToastDescription(error), 
           timestamp: new Date(),
         });
         if (isClient) {
            toast({
             variant: "destructive",
-            title: `Error processing item ${getCleanedPromptString(String(item.id))}`,
+            title: `Error processing item ${getCleanedPromptString(String(item.id))}`, // Ensure item.id is also cleaned for display if it could be an object
             description: getSafeToastDescription(error),
           });
         }
