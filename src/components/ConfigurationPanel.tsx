@@ -62,7 +62,25 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    // console.log("--- DEBUG: CONFIG PANEL RECEIVED PROPS (ConfigurationPanel.tsx) ---");
+    // console.log("Raw received config prop:", JSON.stringify(config, null, 2));
+    // if (config && config.systemInstruction !== undefined) {
+    //   console.log("Type of received config.systemInstruction:", typeof config.systemInstruction, "Value:", config.systemInstruction);
+    // } else {
+    //   console.log("config.systemInstruction is undefined or config is not fully loaded yet.");
+    // }
+    // if (config && config.promptATemplate !== undefined) {
+    //   console.log("Type of received config.promptATemplate:", typeof config.promptATemplate, "Value:", config.promptATemplate);
+    // } else {
+    //   console.log("config.promptATemplate is undefined or config is not fully loaded yet.");
+    // }
+    // if (config && config.promptBTemplate !== undefined) {
+    //    console.log("Type of received config.promptBTemplate:", typeof config.promptBTemplate, "Value:", config.promptBTemplate);
+    // } else {
+    //   console.log("config.promptBTemplate is undefined or config is not fully loaded yet.");
+    // }
+    // console.log("-------------------------------------------------------------------");
+  }, [config]); // Rerun if config changes
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -100,7 +118,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="systemInstruction"
                 name="systemInstruction"
-                value={ensureStringForConfig(config.systemInstruction, 'config.systemInstruction_for_textarea')}
+                value={systemInstructionValue}
                 onChange={handleInputChange}
                 placeholder="e.g., You are a helpful AI assistant."
                 className="mt-1 min-h-[100px] font-code"
@@ -110,7 +128,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 
             <div>
               <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
-              {/* <Textarea
+              <Textarea
                 id="promptATemplate"
                 name="promptATemplate"
                 value={String(config.promptATemplate ?? "")} 
@@ -119,7 +137,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                 className="mt-1 min-h-[100px] font-code"
                 rows={4}
               />
-               <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p> */}
+               {/* <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p> */}
             </div>
 
             {/*
@@ -128,7 +146,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="promptBTemplate"
                 name="promptBTemplate"
-                value={ensureStringForConfig(config.promptBTemplate, 'config.promptBTemplate_for_textarea')}
+                value={promptBTemplateValue}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model B, more creatively."
                 className="mt-1 min-h-[100px] font-code"
