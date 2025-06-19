@@ -62,6 +62,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 
   useEffect(() => {
     setIsClient(true);
+    // Basic console log to confirm panel is trying to render and received props
     // console.log("--- DEBUG: CONFIG PANEL RECEIVED PROPS (ConfigurationPanel.tsx) ---");
     // console.log("Raw received config prop:", JSON.stringify(config, null, 2));
     // if (config && config.systemInstruction !== undefined) {
@@ -80,7 +81,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
     //   console.log("config.promptBTemplate is undefined or config is not fully loaded yet.");
     // }
     // console.log("-------------------------------------------------------------------");
-  }, [config]); // Rerun if config changes
+  }, [config]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -97,6 +98,9 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
     }
   };
 
+  // Directly use String() coercion for Textarea values for this test
+  // Bypassing ensureStringForConfig for now to rule it out for these specific values
+
   return (
     <SheetContent className="w-full sm:max-w-lg md:max-w-xl flex flex-col" side="right">
       <SheetHeader>
@@ -107,7 +111,8 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
       </SheetHeader>
       {isClient ? (
         <ScrollArea className="flex-grow p-1 pr-6">
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 py-4"> {/* This div or its closing tag is around line 136 */}
+            {/* System Instruction Section */}
             <div>
               <Label htmlFor="systemInstruction" className="text-lg font-semibold">System Instruction</Label>
               <Textarea
@@ -122,6 +127,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                <p className="text-sm text-muted-foreground mt-1">Define the overall behavior and persona for the AI models.</p>
             </div>
 
+            {/* Prompt A Template Section */}
             <div>
               <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
               <Textarea
@@ -133,9 +139,10 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                 className="mt-1 min-h-[100px] font-code"
                 rows={4}
               />
-               <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p>
+               <p className="text-sm text-muted-foreground mt-1">Test description for Prompt A.</p>
             </div>
             
+            {/* Prompt B Template Section (Commented out for isolation) */}
             {/*
             <div>
               <Label htmlFor="promptBTemplate" className="text-lg font-semibold">Prompt B Template</Label>
@@ -150,7 +157,10 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               />
                <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p>
             </div>
+            */}
 
+            {/* API Parameters Section (Commented out for isolation) */}
+            {/*
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">API Parameters</h3>
               <div>
@@ -212,4 +222,6 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 };
 
 export default ConfigurationPanel;
+    
+
     
