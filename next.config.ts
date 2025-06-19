@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
       resolveAlias: {
         // Use a path relative to the project root for Turbopack
         'async_hooks': './src/lib/empty-module.js',
+        'dns': './src/lib/empty-module.js', // Added dns alias
       },
     },
   },
@@ -36,13 +37,14 @@ const nextConfig: NextConfig = {
   webpack: (config: WebpackConfiguration, { isServer }) => {
     if (!isServer) {
       // Standard webpack fallback for when not using Turbopack
-      // Prevent 'async_hooks' from being bundled on the client
+      // Prevent 'async_hooks' and 'dns' from being bundled on the client
       if (!config.resolve) {
         config.resolve = {};
       }
       config.resolve.fallback = {
         ...config.resolve.fallback,
         async_hooks: false, // Webpack typically handles 'false' correctly
+        dns: false, // Added dns fallback
       };
     }
     // Important: return the modified config
