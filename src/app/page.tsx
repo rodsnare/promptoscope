@@ -180,6 +180,8 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
   return `[${fieldName}: UNKNOWN_DATA_TYPE_ENCOUNTERED_(${typeof value})]`;
 }
 
+// This function is used to prepare string values for the ConfigurationPanel props
+// to ensure they are simple strings and not objects that might cause rendering issues.
 const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): string => {
   if (value === null || value === undefined) {
     return ""; 
@@ -187,20 +189,27 @@ const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): strin
   if (typeof value === 'string') {
     return value;
   }
+  // Handle the specific case { prompt: "some string" } which was causing issues
   if (typeof value === 'object' &&
       value !== null && 
       Object.prototype.hasOwnProperty.call(value, 'prompt') &&
       typeof value.prompt === 'string' &&
       Object.keys(value).length === 1) {
+    // If it's this specific object, extract the string.
+    // This helps if an upstream process inadvertently wraps a string this way.
     return value.prompt || `[${fieldNameForPlaceholder}_HAD_EMPTY_PROMPT_IN_OBJECT]`;
   }
+  // If it's any other object, it's unexpected for these config fields.
+  // Return a placeholder indicating an issue.
   if (typeof value === 'object' && value !== null) { 
     const keys = Object.keys(value);
     if (keys.length === 0) {
       return `[${fieldNameForPlaceholder}_WAS_EMPTY_OBJECT]`;
     }
+    // This indicates an unexpected object structure was passed for a config string.
     return `[${fieldNameForPlaceholder}_WAS_UNEXPECTED_OBJECT_TYPE (keys: ${keys.join(', ')})]`;
   }
+  // For other types (number, boolean), convert to string.
   return String(value);
 };
 
@@ -368,16 +377,19 @@ export default function Home() {
       }
   };
   
+  // Prepare a version of appConfig to pass to ConfigurationPanel.
+  // This ensures that fields expected to be strings are indeed strings.
   const sanitizedAppConfigForPanel: AppConfig = {
     systemInstruction: getSafeConfigString(appConfig.systemInstruction, 'SystemInstruction'),
     promptATemplate: getSafeConfigString(appConfig.promptATemplate, 'PromptATemplate'),
     promptBTemplate: getSafeConfigString(appConfig.promptBTemplate, 'PromptBTemplate'),
-    apiConfig: {
+    apiConfig: { // API config values are numbers, so they are passed as is.
         temperature: appConfig.apiConfig.temperature,
         topK: appConfig.apiConfig.topK,
         maxOutputTokens: appConfig.apiConfig.maxOutputTokens,
     },
   };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -425,3 +437,6 @@ export default function Home() {
 
 
 
+
+
+    
