@@ -6,33 +6,30 @@ import type { ConversationTurn } from '@/types';
 import { Bot, UserCircle, CheckSquare } from 'lucide-react';
 
 const renderContentSafely = (content: any, defaultText: string = "N/A"): string => {
+  if (content === null || content === undefined) {
+    return defaultText;
+  }
   if (typeof content === 'string') {
     return content || defaultText;
   }
   if (typeof content === 'number' || typeof content === 'boolean') {
     return String(content);
   }
-  if (content === null || content === undefined) {
-    return defaultText;
-  }
-  if (typeof content === 'object' &&
-      Object.prototype.hasOwnProperty.call(content, 'prompt') &&
-      typeof content.prompt === 'string') {
-    // console.warn('renderContentSafely (Interactive): Extracting from {prompt: string} object.');
+  // Explicitly check for the problematic object structure: { prompt: "string_value" } and only that.
+  if (
+    typeof content === 'object' &&
+    content !== null &&
+    Object.keys(content).length === 1 &&
+    Object.prototype.hasOwnProperty.call(content, 'prompt') &&
+    typeof content.prompt === 'string'
+  ) {
     return content.prompt || defaultText;
   }
-  if (typeof content === 'object') {
-    // console.warn('renderContentSafely (Interactive): Attempting to stringify complex object.');
-    try {
-      const str = JSON.stringify(content);
-      if (str === '{}') return '[Empty Object]';
-      return str;
-    } catch (e) {
-      // console.error('renderContentSafely (Interactive): Failed to stringify object.', e);
-      return '[Unstringifiable Object]';
-    }
+  // If it's any other kind of object.
+  if (typeof content === 'object' && content !== null) {
+    return `[Unsupported Content Type]`;
   }
-  // console.warn('renderContentSafely (Interactive): Encountered unexpected type, converting to string:', typeof content);
+  // Final fallback for any other unexpected type.
   return String(content);
 };
 
