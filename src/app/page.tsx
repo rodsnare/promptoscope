@@ -27,6 +27,134 @@ const initialAppConfig: AppConfig = {
   apiConfig: initialApiConfig,
 };
 
+// Helper to recursively find a string value for a 'prompt' key
+function findNestedPromptString(obj: any): string | null {
+  if (typeof obj !== 'object' || obj === null) {
+    return null;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(obj, 'prompt') && typeof obj.prompt === 'string') {
+    return obj.prompt;
+  }
+
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      // Check only own properties and avoid excessive depth for performance/safety
+      if (typeof obj[key] === 'object' && obj[key] !== null) {
+         const nestedResult = findNestedPromptString(obj[key]);
+         if (nestedResult !== null) {
+            return nestedResult;
+         }
+      }
+    }
+  }
+  return null;
+}
+
+const getCleanedPromptString = (promptInput: any): string => {
+  if (promptInput === null || promptInput === undefined) {
+    return "";
+  }
+  if (typeof promptInput === 'string') {
+    return promptInput;
+  }
+  if (typeof promptInput === 'number' || typeof promptInput === 'boolean') {
+    return String(promptInput);
+  }
+
+  if (typeof promptInput === 'object') {
+    const nestedPrompt = findNestedPromptString(promptInput);
+    if (nestedPrompt !== null) {
+      return nestedPrompt;
+    }
+    // Specific check for { prompt: "string_value" } as a direct structure if not caught by findNestedPromptString
+    if (
+      Object.keys(promptInput).length === 1 &&
+      Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
+      typeof promptInput.prompt === 'string'
+    ) {
+      return promptInput.prompt;
+    }
+    return "[Invalid Prompt Structure]"; 
+  }
+  return String(promptInput); // Fallback for other types
+};
+
+
+const ensureStringContent = (content: any, defaultString: string = "No content provided"): string => {
+  if (content === null || content === undefined) {
+    return defaultString;
+  }
+  if (typeof content === 'string') {
+    return content || defaultString;
+  }
+  if (typeof content === 'number' || typeof content === 'boolean') {
+    return String(content);
+  }
+
+  if (typeof content === 'object') {
+    const nestedPrompt = findNestedPromptString(content);
+    if (nestedPrompt !== null) {
+      return nestedPrompt || defaultString;
+    }
+    
+    // Fallback to stringify if no 'prompt' string found or if it's complex
+    try {
+      const str = JSON.stringify(content);
+      if (str === '{}') return `[Empty Object]`; // Placeholder for empty objects
+      return str; // Return stringified object if not empty
+    } catch (e) {
+      return "[Unstringifiable Object Content]";
+    }
+  }
+  return String(content); // Fallback for any other type
+};
+
+
+const getSafeToastDescription = (error: any): string => {
+  if (error === null || error === undefined) {
+    return "An unknown error occurred.";
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (typeof error === 'number' || typeof error === 'boolean') {
+    return String(error);
+  }
+
+  let messageToDisplay: string | null = null;
+
+  if (error instanceof Error) {
+    // Try to find a nested prompt string in error.message
+    if (typeof error.message === 'object' && error.message !== null) {
+        messageToDisplay = findNestedPromptString(error.message);
+    }
+    // If not found or error.message is a string, use error.message directly
+    if (messageToDisplay === null && typeof error.message === 'string') {
+        messageToDisplay = error.message;
+    } else if (messageToDisplay === null) { // If error.message was an object but no prompt string found
+        try {
+            messageToDisplay = JSON.stringify(error.message);
+        } catch {
+            messageToDisplay = "Failed to stringify error.message object.";
+        }
+    }
+  } else if (typeof error === 'object') {
+    // Try to find a nested prompt string in the error object itself
+    messageToDisplay = findNestedPromptString(error);
+    if (messageToDisplay === null) { // If no prompt string found in the error object
+        try {
+            messageToDisplay = JSON.stringify(error);
+        } catch {
+            messageToDisplay = "Failed to stringify error object.";
+        }
+    }
+  }
+  
+  return messageToDisplay || "An unknown error occurred.";
+};
+
+
 export default function Home() {
   const [mode, setMode] = useState<EvaluationMode>('interactive');
   const [appConfig, setAppConfig] = useState<AppConfig>(initialAppConfig);
@@ -45,97 +173,7 @@ export default function Home() {
     setIsClient(true);
   }, []);
 
-  const getCleanedPromptString = (promptInput: any): string => {
-    if (promptInput === null || promptInput === undefined) {
-      return "";
-    }
-    if (typeof promptInput === 'string') {
-      return promptInput;
-    }
-    if (
-      typeof promptInput === 'object' &&
-      promptInput !== null &&
-      Object.keys(promptInput).length === 1 &&
-      Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
-      typeof promptInput.prompt === 'string'
-    ) {
-      return promptInput.prompt || "[Empty Prompt in Object]";
-    }
-    if (typeof promptInput === 'object' && promptInput !== null) {
-      return "[Invalid Prompt Structure]"; // Specific placeholder for other objects
-    }
-    // For other primitives (boolean, number)
-    return String(promptInput);
-  };
-
-  const getSafeToastDescription = (error: any): string => {
-    // Check if error.message is the problematic object
-    if (error instanceof Error) {
-        if (
-            typeof error.message === 'object' &&
-            error.message !== null &&
-            Object.keys(error.message).length === 1 &&
-            Object.prototype.hasOwnProperty.call(error.message, 'prompt') &&
-            typeof error.message.prompt === 'string'
-        ) {
-            return error.message.prompt || "[Empty Prompt in Error Message]";
-        }
-        if (typeof error.message === 'string') return error.message;
-        try {
-            return JSON.stringify(error.message); // Fallback for other error.message types
-        } catch {
-            return "Failed to stringify error message object.";
-        }
-    }
-
-    // Check if error itself is the problematic object
-    if (
-        typeof error === 'object' &&
-        error !== null &&
-        Object.keys(error).length === 1 &&
-        Object.prototype.hasOwnProperty.call(error, 'prompt') &&
-        typeof error.prompt === 'string'
-    ) {
-        return error.prompt || "[Empty Prompt in Error]";
-    }
-
-    if (typeof error === 'string') return error;
-
-    // Fallback for other error types
-    try {
-        return JSON.stringify(error);
-    } catch {
-        return "An unknown error occurred.";
-    }
-  };
-
-
-  const ensureStringContent = (content: any, defaultString: string = "No content provided"): string => {
-    if (content === null || content === undefined) {
-      return defaultString;
-    }
-    if (typeof content === 'string') {
-      return content || defaultString;
-    }
-    if (
-      typeof content === 'object' &&
-      content !== null &&
-      Object.keys(content).length === 1 &&
-      Object.prototype.hasOwnProperty.call(content, 'prompt') &&
-      typeof content.prompt === 'string'
-    ) {
-      return content.prompt || defaultString;
-    }
-    if (typeof content === 'object' && content !== null) {
-      return `[Unsupported Object Content]`; // Specific placeholder for other objects
-    }
-    // For other primitives
-    return String(content);
-  };
-
-
   const interpolatePrompt = (template: string, userPrompt: string): string => {
-    // Ensure userPrompt is definitely a string before interpolation
     const safeUserPrompt = typeof userPrompt === 'string' ? userPrompt : '[Invalid User Prompt for Interpolation]';
     return template.replace(/\{\{prompt\}\}/g, safeUserPrompt);
   };
@@ -155,33 +193,18 @@ export default function Home() {
         ...appConfig.apiConfig,
       });
 
-      let finalResponseA = responses.responseA;
-      if (typeof responses.responseA === 'object' && responses.responseA !== null && Object.keys(responses.responseA).length === 1 && 'prompt' in responses.responseA && typeof responses.responseA.prompt === 'string') {
-        finalResponseA = responses.responseA.prompt;
-      }
-
-      let finalResponseB = responses.responseB;
-      if (typeof responses.responseB === 'object' && responses.responseB !== null && Object.keys(responses.responseB).length === 1 && 'prompt' in responses.responseB && typeof responses.responseB.prompt === 'string') {
-        finalResponseB = responses.responseB.prompt;
-      }
-
       const evaluationResult = await evaluateResponse({
         prompt: userPromptString,
-        responseA: ensureStringContent(finalResponseA, "No response from Model A's source"), // Pass unwrapped to ensureStringContent
-        responseB: ensureStringContent(finalResponseB, "No response from Model B's source"), // Pass unwrapped to ensureStringContent
+        responseA: ensureStringContent(responses.responseA, "No response from Model A's source"),
+        responseB: ensureStringContent(responses.responseB, "No response from Model B's source"),
       });
-
-      let finalEvaluation = evaluationResult.evaluation;
-      if (typeof evaluationResult.evaluation === 'object' && evaluationResult.evaluation !== null && Object.keys(evaluationResult.evaluation).length === 1 && 'prompt' in evaluationResult.evaluation && typeof evaluationResult.evaluation.prompt === 'string') {
-        finalEvaluation = evaluationResult.evaluation.prompt;
-      }
 
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
-        userPrompt: userPromptString, // Already cleaned by getCleanedPromptString
-        responseA: ensureStringContent(finalResponseA, "No response from Model A"),
-        responseB: ensureStringContent(finalResponseB, "No response from Model B"),
-        evaluation: ensureStringContent(finalEvaluation, "No evaluation available"),
+        userPrompt: userPromptString,
+        responseA: ensureStringContent(responses.responseA, "No response from Model A"),
+        responseB: ensureStringContent(responses.responseB, "No response from Model B"),
+        evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
         timestamp: new Date(),
       };
       setInteractiveHistory(prev => [newTurn, ...prev]);
@@ -206,7 +229,7 @@ export default function Home() {
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
-      const userPromptString = getCleanedPromptString(item.prompt); // Use refined cleaner
+      const userPromptString = getCleanedPromptString(item.prompt); 
 
       try {
         const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
@@ -218,34 +241,19 @@ export default function Home() {
           systemInstruction: appConfig.systemInstruction,
           ...appConfig.apiConfig,
         });
-
-        let finalResponseA = responses.responseA;
-        if (typeof responses.responseA === 'object' && responses.responseA !== null && Object.keys(responses.responseA).length === 1 && 'prompt' in responses.responseA && typeof responses.responseA.prompt === 'string') {
-          finalResponseA = responses.responseA.prompt;
-        }
-
-        let finalResponseB = responses.responseB;
-        if (typeof responses.responseB === 'object' && responses.responseB !== null && Object.keys(responses.responseB).length === 1 && 'prompt' in responses.responseB && typeof responses.responseB.prompt === 'string') {
-          finalResponseB = responses.responseB.prompt;
-        }
-
+        
         const evaluationResult = await evaluateResponse({
           prompt: userPromptString,
-          responseA: ensureStringContent(finalResponseA, "No response from Model A's source for batch"),
-          responseB: ensureStringContent(finalResponseB, "No response from Model B's source for batch"),
+          responseA: ensureStringContent(responses.responseA, "No response from Model A's source for batch"),
+          responseB: ensureStringContent(responses.responseB, "No response from Model B's source for batch"),
         });
 
-        let finalEvaluation = evaluationResult.evaluation;
-        if (typeof evaluationResult.evaluation === 'object' && evaluationResult.evaluation !== null && Object.keys(evaluationResult.evaluation).length === 1 && 'prompt' in evaluationResult.evaluation && typeof evaluationResult.evaluation.prompt === 'string') {
-          finalEvaluation = evaluationResult.evaluation.prompt;
-        }
-
         results.push({
-          id: item.id, // ID from file is assumed to be string/number by FileUpload validation
-          prompt: userPromptString, // Already cleaned
-          responseA: ensureStringContent(finalResponseA, "No response from Model A"),
-          responseB: ensureStringContent(finalResponseB, "No response from Model B"),
-          evaluation: ensureStringContent(finalEvaluation, "No evaluation available"),
+          id: item.id, 
+          prompt: userPromptString, 
+          responseA: ensureStringContent(responses.responseA, "No response from Model A"),
+          responseB: ensureStringContent(responses.responseB, "No response from Model B"),
+          evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
           timestamp: new Date(),
         });
 
@@ -253,19 +261,19 @@ export default function Home() {
         results.push({
           id: item.id,
           prompt: userPromptString,
-          error: ensureStringContent(getSafeToastDescription(error), "An error occurred during processing."),
+          error: getSafeToastDescription(error),
           timestamp: new Date(),
         });
         if (isClient) {
            toast({
             variant: "destructive",
-            title: `Error processing item ${item.id}`,
+            title: `Error processing item ${ensureStringContent(String(item.id), "Unknown ID")}`,
             description: getSafeToastDescription(error),
           });
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]);
+      setBatchResults([...results]); // Update results incrementally for better UX
     }
 
     setBatchIsLoading(false);
