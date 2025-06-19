@@ -101,7 +101,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
   };
   
   const systemInstructionValue = ensureStringForConfig(config.systemInstruction, 'config.systemInstruction_for_textarea');
-  // const promptATemplateValue = ensureStringForConfig(config.promptATemplate, 'config.promptATemplate_for_textarea');
+  const promptATemplateValue = ensureStringForConfig(config.promptATemplate, 'config.promptATemplate_for_textarea');
   // const promptBTemplateValue = ensureStringForConfig(config.promptBTemplate, 'config.promptBTemplate_for_textarea');
 
 
@@ -129,13 +129,13 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               />
             </div>
 
-            {/*
+            
             <div>
               <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
               <Textarea
                 id="promptATemplate"
                 name="promptATemplate"
-                // value={promptATemplateValue}
+                value={promptATemplateValue}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model A."
                 className="mt-1 min-h-[100px] font-code"
@@ -144,6 +144,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p>
             </div>
 
+            {/*
             <div>
               <Label htmlFor="promptBTemplate" className="text-lg font-semibold">Prompt B Template</Label>
               <Textarea
@@ -219,5 +220,3 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 };
 
 export default ConfigurationPanel;
-
-    
