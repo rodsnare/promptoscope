@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { compareResponses } from '@/ai/flows/compare-responses';
 import { evaluateResponse } from '@/ai/flows/evaluate-response';
 import type { AppConfig, ApiConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, BatchFileItem } from '@/types';
-import { Sheet } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet'; // Import SheetContent
 
 const initialApiConfig: ApiConfig = {
   temperature: 0.7,
@@ -180,25 +180,27 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
   return `[${fieldName}: UNKNOWN_DATA_TYPE_ENCOUNTERED_(${typeof value})]`;
 }
 
-// New helper specifically for sanitizing appConfig for ConfigurationPanel
+// Helper specifically for sanitizing appConfig for ConfigurationPanel
 const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
   if (value === null || value === undefined) {
     return ""; // Config textareas should be empty if value is null/undefined
   }
+  if (typeof value === 'string') {
+    return value;
+  }
   // Check for the specific problematic object {prompt: "string"}
   if (typeof value === 'object' &&
-      value !== null && // Ensure value is not null before accessing properties
       Object.prototype.hasOwnProperty.call(value, 'prompt') &&
       typeof value.prompt === 'string' &&
       Object.keys(value).length === 1) {
     return value.prompt || `[${fieldNameForPlaceholder}_HAD_EMPTY_PROMPT_IN_OBJECT]`;
   }
   // For any other object type, return a placeholder
-  if (typeof value === 'object' && value !== null) {
+  if (typeof value === 'object') { 
     const keys = Object.keys(value);
+    if (keys.length === 0) {
+      return `[${fieldNameForPlaceholder}_WAS_EMPTY_OBJECT]`;
+    }
     return `[${fieldNameForPlaceholder}_WAS_UNEXPECTED_OBJECT_TYPE (keys: ${keys.join(', ')})]`;
   }
   // Fallback for numbers, booleans, etc.
@@ -256,6 +258,7 @@ export default function Home() {
       
       let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation_Interactive');
 
+      // Final Override Checks
       if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = `[FINAL_OVERRIDE_USER_PROMPT_INTERACTIVE_WAS_OBJECT (${Object.keys(userPromptForState).join(',')})]`;
       if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_RESPONSE_A_INTERACTIVE_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
       if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = `[FINAL_OVERRIDE_RESPONSE_B_INTERACTIVE_WAS_OBJECT (${Object.keys(finalResponseB).join(',')})]`;
@@ -296,6 +299,7 @@ export default function Home() {
       let promptForState = forceStringOrVerySpecificPlaceholder(cleanedItemPrompt, 'Prompt_BatchItem');
       let itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'ID_BatchItem');
 
+
       try {
         const fullPromptA = interpolatePrompt(appConfig.promptATemplate, promptForState);
         const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, promptForState);
@@ -318,6 +322,7 @@ export default function Home() {
 
         let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation_BatchItem');
         
+        // Final Override Checks
         if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
         if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
         if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_BATCH_RSPA_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
@@ -336,7 +341,8 @@ export default function Home() {
       } catch (error) {
         let errorDescriptionAttempt = getSafeToastDescription(error);
         let errorDescriptionForState = forceStringOrVerySpecificPlaceholder(errorDescriptionAttempt, 'ErrorDesc_BatchItem');
-
+        
+        // Final Override Checks for error path
         if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
         if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
         if (typeof errorDescriptionForState === 'object' && errorDescriptionForState !== null) errorDescriptionForState = `[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT (${Object.keys(errorDescriptionForState).join(',')})]`;
@@ -356,7 +362,7 @@ export default function Home() {
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]);
+      setBatchResults([...results]); 
     }
 
     setBatchIsLoading(false);
@@ -369,14 +375,14 @@ export default function Home() {
   };
 
   const sanitizedAppConfigForPanel: AppConfig = {
-    ...appConfig,
     systemInstruction: getSafeConfigString(appConfig.systemInstruction, 'SystemInstruction'),
     promptATemplate: getSafeConfigString(appConfig.promptATemplate, 'PromptATemplate'),
     promptBTemplate: getSafeConfigString(appConfig.promptBTemplate, 'PromptBTemplate'),
+    apiConfig: appConfig.apiConfig,
   };
-
-  if (isConfigPanelOpen && isClient) { // Added isClient check for console logs
-    console.log("--- DEBUG: CONFIG PANEL STATE ---");
+  
+  if (isConfigPanelOpen && isClient) {
+    console.log("--- DEBUG: CONFIG PANEL STATE (page.tsx) ---");
     console.log("Raw appConfig:", JSON.stringify(appConfig, null, 2));
     console.log("Sanitized appConfig for panel:", JSON.stringify(sanitizedAppConfigForPanel, null, 2));
     console.log("Type of sanitized systemInstruction:", typeof sanitizedAppConfigForPanel.systemInstruction, "Value:", sanitizedAppConfigForPanel.systemInstruction);
@@ -385,31 +391,23 @@ export default function Home() {
     console.log("---------------------------------");
   }
 
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Sheet open={isConfigPanelOpen} onOpenChange={setIsConfigPanelOpen}>
         <AppHeader />
-        {/* TEMPORARY DEBUGGING: Replace ConfigurationPanel with simple text display */}
-        {isConfigPanelOpen && isClient && ( // Conditionally render debug info
-            <div style={{ padding: '20px', background: 'lightyellow', border: '1px solid orange', margin: '10px' }}>
-                <h3 style={{color: 'black'}}>Temporary Debug Output:</h3>
-                <p style={{color: 'black'}}>System Instruction Type: {typeof sanitizedAppConfigForPanel.systemInstruction}</p>
-                <p style={{color: 'black'}}>System Instruction Value: {JSON.stringify(sanitizedAppConfigForPanel.systemInstruction)}</p>
-                <hr style={{margin: '10px 0'}} />
-                <p style={{color: 'black'}}>Prompt A Template Type: {typeof sanitizedAppConfigForPanel.promptATemplate}</p>
-                <p style={{color: 'black'}}>Prompt A Template Value: {JSON.stringify(sanitizedAppConfigForPanel.promptATemplate)}</p>
-                <hr style={{margin: '10px 0'}} />
-                <p style={{color: 'black'}}>Prompt B Template Type: {typeof sanitizedAppConfigForPanel.promptBTemplate}</p>
-                <p style={{color: 'black'}}>Prompt B Template Value: {JSON.stringify(sanitizedAppConfigForPanel.promptBTemplate)}</p>
-                <hr style={{margin: '10px 0'}} />
-                <p style={{color: 'black'}}>API Config: {JSON.stringify(sanitizedAppConfigForPanel.apiConfig)}</p>
-            </div>
+        {/* TEMPORARY DEBUGGING: Render minimal SheetContent */}
+        {isConfigPanelOpen && isClient && (
+          <SheetContent>
+            <p style={{ color: 'black', padding: '20px' }}>Minimal Content Test</p>
+          </SheetContent>
         )}
-        {/* Original ConfigurationPanel -  commented out for debugging
+        {/* 
+        Original ConfigurationPanel - commented out for debugging
         <ConfigurationPanel
           config={sanitizedAppConfigForPanel}
           onConfigChange={setAppConfig}
-        />
+        /> 
         */}
       </Sheet>
 
@@ -443,3 +441,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
