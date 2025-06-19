@@ -65,7 +65,7 @@ function getCleanedPromptString(promptInput: any): string {
     Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
     typeof promptInput.prompt === 'string'
   ) {
-    return promptInput.prompt;
+    return promptInput.prompt || ""; // Ensure empty string if prompt itself is empty
   }
   
   if (typeof promptInput === 'object' && promptInput !== null) {
@@ -120,7 +120,7 @@ const getSafeToastDescription = (error: any): string => {
   if (typeof error === 'number' || typeof error === 'boolean') return String(error);
 
   let potentialMessageSource = error;
-  if (error instanceof Error && error.message) {
+  if (error instanceof Error && typeof error.message === 'string') { // Check if error.message is string
     potentialMessageSource = error.message;
   }
   
@@ -136,7 +136,7 @@ const getSafeToastDescription = (error: any): string => {
     }
     
     const nestedPrompt = findNestedPromptString(potentialMessageSource);
-    if (nestedPrompt !== null) {
+    if (nestedPrompt !== null && typeof nestedPrompt === 'string') { // Ensure nestedPrompt is string
       return nestedPrompt || "Error: Empty nested prompt in error object.";
     }
     
@@ -169,7 +169,7 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
   }
   if (typeof value === 'object') {
     if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, 'prompt') && typeof value.prompt === 'string') {
-      return value.prompt;
+      return value.prompt || `[${fieldName}: EMPTY_PROMPT_IN_OBJECT]`; // Handle if value.prompt is ""
     }
     const keys = Object.keys(value);
     if (keys.length === 0) {
@@ -232,10 +232,10 @@ export default function Home() {
       let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation');
 
       // Final override checks
-      if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[FINAL_OVERRIDE_USER_PROMPT_WAS_OBJECT]";
-      if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[FINAL_OVERRIDE_RESPONSE_A_WAS_OBJECT]";
-      if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[FINAL_OVERRIDE_RESPONSE_B_WAS_OBJECT]";
-      if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[FINAL_OVERRIDE_EVALUATION_WAS_OBJECT]";
+      if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = `[FINAL_OVERRIDE_USER_PROMPT_WAS_OBJECT (${Object.keys(userPromptForState).join(',')})]`;
+      if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_RESPONSE_A_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
+      if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = `[FINAL_OVERRIDE_RESPONSE_B_WAS_OBJECT (${Object.keys(finalResponseB).join(',')})]`;
+      if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = `[FINAL_OVERRIDE_EVALUATION_WAS_OBJECT (${Object.keys(finalEvaluation).join(',')})]`;
       
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
@@ -295,11 +295,11 @@ export default function Home() {
         let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'BatchEvaluation');
         
         // Final override checks for batch
-        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = "[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT]";
-        if (typeof promptForState === 'object' && promptForState !== null) promptForState = "[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT]";
-        if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[FINAL_OVERRIDE_BATCH_RSPA_WAS_OBJECT]";
-        if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[FINAL_OVERRIDE_BATCH_RSPB_WAS_OBJECT]";
-        if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[FINAL_OVERRIDE_BATCH_EVAL_WAS_OBJECT]";
+        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
+        if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
+        if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_BATCH_RSPA_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
+        if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = `[FINAL_OVERRIDE_BATCH_RSPB_WAS_OBJECT (${Object.keys(finalResponseB).join(',')})]`;
+        if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = `[FINAL_OVERRIDE_BATCH_EVAL_WAS_OBJECT (${Object.keys(finalEvaluation).join(',')})]`;
         
         results.push({
           id: itemIdForState,
@@ -315,9 +315,9 @@ export default function Home() {
         let errorDescriptionForState = forceStringOrVerySpecificPlaceholder(errorDescriptionAttempt, 'BatchItemErrorDescription');
 
         // Final override checks for batch error path
-        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = "[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT]";
-        if (typeof promptForState === 'object' && promptForState !== null) promptForState = "[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT]";
-        if (typeof errorDescriptionForState === 'object' && errorDescriptionForState !== null) errorDescriptionForState = "[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT]";
+        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
+        if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
+        if (typeof errorDescriptionForState === 'object' && errorDescriptionForState !== null) errorDescriptionForState = `[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT (${Object.keys(errorDescriptionForState).join(',')})]`;
         
         results.push({
           id: itemIdForState, 

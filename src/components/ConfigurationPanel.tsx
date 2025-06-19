@@ -32,7 +32,7 @@ const ensureStringForConfig = (content: any): string => {
     Object.prototype.hasOwnProperty.call(content, 'prompt') &&
     typeof (content as { prompt: any }).prompt === 'string'
   ) {
-    return (content as { prompt: string }).prompt;
+    return (content as { prompt: string }).prompt || "[Empty prompt in config object]";
   }
   if (typeof content === 'object' && content !== null) {
     const keys = Object.keys(content);
