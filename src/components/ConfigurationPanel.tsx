@@ -37,6 +37,27 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
     }
   };
 
+  if (!isClient) {
+    return (
+      <SheetContent className="w-full sm:max-w-lg md:max-w-xl flex flex-col" side="right">
+        <SheetHeader>
+          <SheetTitle className="font-headline">Configuration</SheetTitle>
+          <SheetDescription>
+            Adjust system instructions, prompt templates, and API parameters for evaluations.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex-grow p-4">
+          <p>Loading configuration...</p>
+        </div>
+        <SheetFooter>
+          <SheetClose asChild>
+            <Button variant="outline">Close</Button>
+          </SheetClose>
+        </SheetFooter>
+      </SheetContent>
+    );
+  }
+
   return (
     <SheetContent className="w-full sm:max-w-lg md:max-w-xl flex flex-col" side="right">
       <SheetHeader>
@@ -45,106 +66,104 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
           Adjust system instructions, prompt templates, and API parameters for evaluations.
         </SheetDescription>
       </SheetHeader>
-      {isClient ? (
-        <ScrollArea className="flex-grow p-1 pr-6">
-          <div className="space-y-6 py-4">
-            {/* System Instruction Section */}
-            <div>
-              <Label htmlFor="systemInstruction" className="text-lg font-semibold">System Instruction</Label>
-              <Textarea
-                id="systemInstruction"
-                name="systemInstruction"
-                value={String(config.systemInstruction ?? "")}
-                onChange={handleInputChange}
-                placeholder="e.g., You are a helpful AI assistant."
-                className="mt-1 min-h-[100px] font-code"
-                rows={4}
-              />
-               <p className="text-sm text-muted-foreground mt-1">Define the overall behavior and persona for the AI models.</p>
-            </div>
+      <ScrollArea className="flex-grow p-1 pr-6">
+        <div className="space-y-6 py-4">
+          {/* System Instruction Section */}
+          <div>
+            <Label htmlFor="systemInstruction" className="text-lg font-semibold">System Instruction</Label>
+            <Textarea
+              id="systemInstruction"
+              name="systemInstruction"
+              value={String(config.systemInstruction ?? "")}
+              onChange={handleInputChange}
+              placeholder="e.g., You are a helpful AI assistant."
+              className="mt-1 min-h-[100px] font-code"
+              rows={4}
+            />
+            <p className="text-sm text-muted-foreground mt-1">Define the overall behavior and persona for the AI models.</p>
+          </div>
 
-            {/* Prompt A Template Section */}
+          {/* Prompt A Template Section */}
+          <div>
+            <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
+            <Textarea
+              id="promptATemplate"
+              name="promptATemplate"
+              value={String(config.promptATemplate ?? "")}
+              onChange={handleInputChange}
+              placeholder="e.g., User query: {{prompt}}. Respond as Model A."
+              className="mt-1 min-h-[100px] font-code"
+              rows={4}
+            />
+            {/* Using a div with explicit string expression for the descriptive text */}
+            <div className="text-sm text-muted-foreground mt-1">{'A very simple text.'}</div>
+          </div>
+          
+          {/* Prompt B Template Section (Commented out) */}
+          {/*
+          <div>
+            <Label htmlFor="promptBTemplate" className="text-lg font-semibold">Prompt B Template</Label>
+            <Textarea
+              id="promptBTemplate"
+              name="promptBTemplate"
+              value={String(config.promptBTemplate ?? "")}
+              onChange={handleInputChange}
+              placeholder="e.g., User asks: {{prompt}}. Respond as Model B, more creatively."
+              className="mt-1 min-h-[100px] font-code"
+              rows={4}
+            />
+            <p className="text-sm text-muted-foreground mt-1">Enter the template for Prompt B. Use {{prompt}} for user input.</p>
+          </div>
+          */}
+          
+          {/* API Parameters Section (Commented out) */}
+          {/*
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">API Parameters</h3>
             <div>
-              <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
-              <Textarea
-                id="promptATemplate"
-                name="promptATemplate"
-                value={String(config.promptATemplate ?? "")} 
+              <Label htmlFor="temperature">Temperature</Label>
+              <Input
+                id="temperature"
+                name="temperature"
+                type="number"
+                value={config.apiConfig.temperature}
                 onChange={handleInputChange}
-                placeholder="e.g., User query: {{prompt}}. Respond as Model A."
-                className="mt-1 min-h-[100px] font-code"
-                rows={4}
+                step="0.1"
+                min="0"
+                max="2"
+                className="mt-1 font-code"
               />
-               <p className="text-sm text-muted-foreground mt-1">Use '{{prompt}}' (with double curly braces) as a placeholder for the user's input.</p>
             </div>
-            
-            {/* Prompt B Template Section */}
             <div>
-              <Label htmlFor="promptBTemplate" className="text-lg font-semibold">Prompt B Template</Label>
-              <Textarea
-                id="promptBTemplate"
-                name="promptBTemplate"
-                value={String(config.promptBTemplate ?? "")}
+              <Label htmlFor="topK">Top-K</Label>
+              <Input
+                id="topK"
+                name="topK"
+                type="number"
+                value={config.apiConfig.topK}
                 onChange={handleInputChange}
-                placeholder="e.g., User asks: {{prompt}}. Respond as Model B, more creatively."
-                className="mt-1 min-h-[100px] font-code"
-                rows={4}
+                step="1"
+                min="1"
+                className="mt-1 font-code"
               />
-               <p className="text-sm text-muted-foreground mt-1">Use '{{prompt}}' (with double curly braces) as a placeholder for the user's input.</p>
             </div>
-            
-
-            {/* API Parameters Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">API Parameters</h3>
-              <div>
-                <Label htmlFor="temperature">Temperature</Label>
-                <Input
-                  id="temperature"
-                  name="temperature"
-                  type="number"
-                  value={config.apiConfig.temperature}
-                  onChange={handleInputChange}
-                  step="0.1"
-                  min="0"
-                  max="2"
-                  className="mt-1 font-code"
-                />
-              </div>
-              <div>
-                <Label htmlFor="topK">Top-K</Label>
-                <Input
-                  id="topK"
-                  name="topK"
-                  type="number"
-                  value={config.apiConfig.topK}
-                  onChange={handleInputChange}
-                  step="1"
-                  min="1"
-                  className="mt-1 font-code"
-                />
-              </div>
-              <div>
-                <Label htmlFor="maxOutputTokens">Max Output Tokens</Label>
-                <Input
-                  id="maxOutputTokens"
-                  name="maxOutputTokens"
-                  type="number"
-                  value={config.apiConfig.maxOutputTokens}
-                  onChange={handleInputChange}
-                  step="1"
-                  min="1"
-                  className="mt-1 font-code"
-                />
-              </div>
+            <div>
+              <Label htmlFor="maxOutputTokens">Max Output Tokens</Label>
+              <Input
+                id="maxOutputTokens"
+                name="maxOutputTokens"
+                type="number"
+                value={config.apiConfig.maxOutputTokens}
+                onChange={handleInputChange}
+                step="1"
+                min="1"
+                className="mt-1 font-code"
+              />
             </div>
           </div>
-        </ScrollArea>
-      ) : (
-        <div className="flex-grow p-4">
-          <p>Loading configuration...</p>
+          */}
         </div>
-      )}
+      </ScrollArea>
       <SheetFooter>
         <SheetClose asChild>
           <Button variant="outline">Close</Button>
@@ -155,6 +174,3 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 };
 
 export default ConfigurationPanel;
-    
-
-    

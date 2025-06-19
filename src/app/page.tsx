@@ -180,15 +180,13 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
   return `[${fieldName}: UNKNOWN_DATA_TYPE_ENCOUNTERED_(${typeof value})]`;
 }
 
-// Helper specifically for sanitizing appConfig for ConfigurationPanel
 const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): string => {
   if (value === null || value === undefined) {
-    return ""; // Config textareas should be empty if value is null/undefined
+    return ""; 
   }
   if (typeof value === 'string') {
     return value;
   }
-  // Check for the specific problematic object {prompt: "string"}
   if (typeof value === 'object' &&
       value !== null && 
       Object.prototype.hasOwnProperty.call(value, 'prompt') &&
@@ -196,7 +194,6 @@ const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): strin
       Object.keys(value).length === 1) {
     return value.prompt || `[${fieldNameForPlaceholder}_HAD_EMPTY_PROMPT_IN_OBJECT]`;
   }
-  // For any other object type, return a placeholder
   if (typeof value === 'object' && value !== null) { 
     const keys = Object.keys(value);
     if (keys.length === 0) {
@@ -204,7 +201,6 @@ const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): strin
     }
     return `[${fieldNameForPlaceholder}_WAS_UNEXPECTED_OBJECT_TYPE (keys: ${keys.join(', ')})]`;
   }
-  // Fallback for numbers, booleans, etc.
   return String(value);
 };
 
@@ -259,7 +255,6 @@ export default function Home() {
       
       let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation_Interactive');
 
-      // Final Override Checks
       if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = `[FINAL_OVERRIDE_USER_PROMPT_INTERACTIVE_WAS_OBJECT (${Object.keys(userPromptForState).join(',')})]`;
       if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_RESPONSE_A_INTERACTIVE_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
       if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = `[FINAL_OVERRIDE_RESPONSE_B_INTERACTIVE_WAS_OBJECT (${Object.keys(finalResponseB).join(',')})]`;
@@ -323,7 +318,6 @@ export default function Home() {
 
         let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation_BatchItem');
         
-        // Final Override Checks
         if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
         if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
         if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_BATCH_RSPA_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
@@ -343,7 +337,6 @@ export default function Home() {
         let errorDescriptionAttempt = getSafeToastDescription(error);
         let errorDescriptionForState = forceStringOrVerySpecificPlaceholder(errorDescriptionAttempt, 'ErrorDesc_BatchItem');
         
-        // Final Override Checks for error path
         if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
         if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
         if (typeof errorDescriptionForState === 'object' && errorDescriptionForState !== null) errorDescriptionForState = `[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT (${Object.keys(errorDescriptionForState).join(',')})]`;
@@ -375,12 +368,11 @@ export default function Home() {
       }
   };
   
-  // Ensure appConfig passed to ConfigurationPanel always has string values for these fields
   const sanitizedAppConfigForPanel: AppConfig = {
     systemInstruction: getSafeConfigString(appConfig.systemInstruction, 'SystemInstruction'),
     promptATemplate: getSafeConfigString(appConfig.promptATemplate, 'PromptATemplate'),
     promptBTemplate: getSafeConfigString(appConfig.promptBTemplate, 'PromptBTemplate'),
-    apiConfig: appConfig.apiConfig, // apiConfig is already structured with numbers, not strings here
+    apiConfig: appConfig.apiConfig, 
   };
 
 
@@ -427,3 +419,4 @@ export default function Home() {
     
 
     
+
