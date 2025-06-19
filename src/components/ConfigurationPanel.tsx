@@ -19,7 +19,7 @@ interface ConfigurationPanelProps {
 // It specifically handles the case where content might be { prompt: "string_value" }.
 const ensureStringForConfig = (content: any, fieldNameForDebug: string): string => {
   if (content === null || content === undefined) {
-    console.log(`ConfigurationPanel: ensureStringForConfig for ${fieldNameForDebug} received null/undefined, returning ""`);
+    // console.log(`ConfigurationPanel: ensureStringForConfig for ${fieldNameForDebug} received null/undefined, returning ""`);
     return "";
   }
   if (typeof content === 'string') {
@@ -28,7 +28,7 @@ const ensureStringForConfig = (content: any, fieldNameForDebug: string): string 
   }
   if (typeof content === 'number' || typeof content === 'boolean') {
     const strVal = String(content);
-    console.log(`ConfigurationPanel: ensureStringForConfig for ${fieldNameForDebug} received number/boolean, returning "${strVal}"`);
+    // console.log(`ConfigurationPanel: ensureStringForConfig for ${fieldNameForDebug} received number/boolean, returning "${strVal}"`);
     return strVal;
   }
   // Check for the specific problematic object {prompt: "string"}
@@ -52,33 +52,12 @@ const ensureStringForConfig = (content: any, fieldNameForDebug: string): string 
   }
   // Fallback for any other type
   const fallbackStr = String(content);
-  console.log(`ConfigurationPanel: ensureStringForConfig for ${fieldNameForDebug} received other type, returning String(content): "${fallbackStr}"`);
+  // console.log(`ConfigurationPanel: ensureStringForConfig for ${fieldNameForDebug} received other type, returning String(content): "${fallbackStr}"`);
   return fallbackStr;
 };
 
 
 const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfigChange }) => {
-  // Critical: Log what this component actually receives.
-  console.log("%c--- DEBUG: CONFIG PANEL RECEIVED PROPS (ConfigurationPanel.tsx) ---", "color: blue; font-weight: bold;");
-  console.log("Raw received config prop:", JSON.stringify(config, null, 2));
-  if (config && config.systemInstruction !== undefined) {
-    console.log("Type of received config.systemInstruction:", typeof config.systemInstruction, "Value:", config.systemInstruction);
-  } else {
-    console.warn("Received config.systemInstruction is undefined or config is null/undefined");
-  }
-  if (config && config.promptATemplate !== undefined) {
-    console.log("Type of received config.promptATemplate:", typeof config.promptATemplate, "Value:", config.promptATemplate);
-  } else {
-    console.warn("Received config.promptATemplate is undefined or config is null/undefined");
-  }
-  if (config && config.promptBTemplate !== undefined) {
-    console.log("Type of received config.promptBTemplate:", typeof config.promptBTemplate, "Value:", config.promptBTemplate);
-  } else {
-    console.warn("Received config.promptBTemplate is undefined or config is null/undefined");
-  }
-  console.log("%c-------------------------------------------------------------------", "color: blue; font-weight: bold;");
-
-
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -100,8 +79,8 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
     }
   };
 
-  const systemInstructionValue = ensureStringForConfig(config.systemInstruction, 'config.systemInstruction_for_textarea');
-  // const promptATemplateValue = ensureStringForConfig(config.promptATemplate, 'config.promptATemplate_for_textarea');
+  // const systemInstructionValue = ensureStringForConfig(config.systemInstruction, 'config.systemInstruction_for_textarea');
+  const promptATemplateValue = ensureStringForConfig(config.promptATemplate, 'config.promptATemplate_for_textarea');
   // const promptBTemplateValue = ensureStringForConfig(config.promptBTemplate, 'config.promptBTemplate_for_textarea');
 
 
@@ -116,7 +95,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
       {isClient ? (
         <ScrollArea className="flex-grow p-1 pr-6">
           <div className="space-y-6 py-4">
-            <div>
+            {/* <div>
               <Label htmlFor="systemInstruction" className="text-lg font-semibold">System Instruction</Label>
               <Textarea
                 id="systemInstruction"
@@ -127,7 +106,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                 className="mt-1 min-h-[100px] font-code"
                 rows={4}
               />
-            </div>
+            </div> */}
 
 
             <div>
@@ -135,13 +114,13 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="promptATemplate"
                 name="promptATemplate"
-                value={"This is a hardcoded test string for Prompt A"}
+                value={promptATemplateValue}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model A."
                 className="mt-1 min-h-[100px] font-code"
                 rows={4}
               />
-              <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p>
+               <p className="text-sm text-muted-foreground mt-1">Use `{{prompt}}` as a placeholder for the user's input.</p>
             </div>
 
             {/*
@@ -150,7 +129,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="promptBTemplate"
                 name="promptBTemplate"
-                // value={promptBTemplateValue}
+                value={promptBTemplateValue}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model B, more creatively."
                 className="mt-1 min-h-[100px] font-code"
@@ -220,5 +199,4 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 };
 
 export default ConfigurationPanel;
-
     
