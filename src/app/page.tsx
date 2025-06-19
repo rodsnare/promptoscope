@@ -64,13 +64,8 @@ const getCleanedPromptString = (promptInput: any): string => {
     if (Object.keys(promptInput).length === 1 && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string') {
       result = promptInput.prompt;
     } else {
-      // Fallback to recursive search for other object structures
-      const nestedPrompt = findNestedPromptString(promptInput);
-      if (nestedPrompt !== null) {
-        result = nestedPrompt;
-      } else {
-        result = "[Invalid Prompt Structure]"; // Placeholder if no usable prompt string found
-      }
+      // If not the simple {prompt: "..."} structure, use placeholder for this function's purpose
+      result = "[Invalid Prompt Structure]"; 
     }
   } else {
     result = String(promptInput); // Fallback for other types
@@ -98,22 +93,16 @@ const ensureStringContent = (content: any, defaultString: string = "No content p
     if (Object.keys(content).length === 1 && Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
       result = content.prompt || defaultString;
     } else {
-      // Fallback to recursive search
-      const nestedPrompt = findNestedPromptString(content);
-      if (nestedPrompt !== null) {
-        result = nestedPrompt || defaultString;
-      } else {
-        // If no direct 'prompt' string found, try to stringify as a last resort for objects
-        try {
-          const str = JSON.stringify(content);
-          if (str === '{}') {
-            result = `[Empty Object]`;
-          } else {
-            result = str;
-          }
-        } catch (e) {
-          result = "[Unstringifiable Object Content]";
+      // For other objects, try to stringify
+      try {
+        const str = JSON.stringify(content);
+        if (str === '{}') {
+          result = `[Empty Object]`;
+        } else {
+          result = str;
         }
+      } catch (e) {
+        result = "[Unstringifiable Object Content]";
       }
     }
   } else {
@@ -298,7 +287,7 @@ export default function Home() {
         results.push({
           id: String(item.id), // Ensure id is a string
           prompt: userPromptString, 
-          error: getSafeToastDescription(error),
+          error: getSafeToastDescription(error), // error is processed by getSafeToastDescription
           timestamp: new Date(),
         });
         if (isClient) {
@@ -363,4 +352,3 @@ export default function Home() {
     </div>
   );
 }
-
