@@ -65,7 +65,7 @@ function getCleanedPromptString(promptInput: any): string {
     Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
     typeof promptInput.prompt === 'string'
   ) {
-    return promptInput.prompt || ""; // Ensure empty string if prompt itself is empty
+    return promptInput.prompt || ""; 
   }
   
   if (typeof promptInput === 'object' && promptInput !== null) {
@@ -120,7 +120,7 @@ const getSafeToastDescription = (error: any): string => {
   if (typeof error === 'number' || typeof error === 'boolean') return String(error);
 
   let potentialMessageSource = error;
-  if (error instanceof Error && typeof error.message === 'string') { // Check if error.message is string
+  if (error instanceof Error && typeof error.message === 'string') { 
     potentialMessageSource = error.message;
   }
   
@@ -136,7 +136,7 @@ const getSafeToastDescription = (error: any): string => {
     }
     
     const nestedPrompt = findNestedPromptString(potentialMessageSource);
-    if (nestedPrompt !== null && typeof nestedPrompt === 'string') { // Ensure nestedPrompt is string
+    if (nestedPrompt !== null && typeof nestedPrompt === 'string') { 
       return nestedPrompt || "Error: Empty nested prompt in error object.";
     }
     
@@ -169,7 +169,7 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
   }
   if (typeof value === 'object') {
     if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, 'prompt') && typeof value.prompt === 'string') {
-      return value.prompt || `[${fieldName}: EMPTY_PROMPT_IN_OBJECT]`; // Handle if value.prompt is ""
+      return value.prompt || `[${fieldName}: EMPTY_PROMPT_IN_OBJECT]`; 
     }
     const keys = Object.keys(value);
     if (keys.length === 0) {
@@ -179,6 +179,30 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
   }
   return `[${fieldName}: UNKNOWN_DATA_TYPE_ENCOUNTERED_(${typeof value})]`;
 }
+
+// New helper specifically for sanitizing appConfig for ConfigurationPanel
+const getSafeConfigString = (value: any, fieldNameForPlaceholder: string): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value === null || value === undefined) {
+    return ""; // Config textareas should be empty if value is null/undefined
+  }
+  // Check for the specific problematic object {prompt: "string"}
+  if (typeof value === 'object' && 
+      Object.prototype.hasOwnProperty.call(value, 'prompt') && 
+      typeof value.prompt === 'string' &&
+      Object.keys(value).length === 1) {
+    return value.prompt || `[${fieldNameForPlaceholder}_HAD_EMPTY_PROMPT_IN_OBJECT]`;
+  }
+  // For any other object type, return a placeholder
+  if (typeof value === 'object') {
+    const keys = Object.keys(value);
+    return `[${fieldNameForPlaceholder}_WAS_UNEXPECTED_OBJECT_TYPE (keys: ${keys.join(', ')})]`;
+  }
+  // Fallback for numbers, booleans, etc.
+  return String(value);
+};
 
 
 export default function Home() {
@@ -231,7 +255,6 @@ export default function Home() {
       
       let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation');
 
-      // Final override checks
       if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = `[FINAL_OVERRIDE_USER_PROMPT_WAS_OBJECT (${Object.keys(userPromptForState).join(',')})]`;
       if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_RESPONSE_A_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
       if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = `[FINAL_OVERRIDE_RESPONSE_B_WAS_OBJECT (${Object.keys(finalResponseB).join(',')})]`;
@@ -294,7 +317,6 @@ export default function Home() {
 
         let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'BatchEvaluation');
         
-        // Final override checks for batch
         if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
         if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
         if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = `[FINAL_OVERRIDE_BATCH_RSPA_WAS_OBJECT (${Object.keys(finalResponseA).join(',')})]`;
@@ -314,7 +336,6 @@ export default function Home() {
         let errorDescriptionAttempt = getSafeToastDescription(error); 
         let errorDescriptionForState = forceStringOrVerySpecificPlaceholder(errorDescriptionAttempt, 'BatchItemErrorDescription');
 
-        // Final override checks for batch error path
         if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = `[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT (${Object.keys(itemIdForState).join(',')})]`;
         if (typeof promptForState === 'object' && promptForState !== null) promptForState = `[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT (${Object.keys(promptForState).join(',')})]`;
         if (typeof errorDescriptionForState === 'object' && errorDescriptionForState !== null) errorDescriptionForState = `[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT (${Object.keys(errorDescriptionForState).join(',')})]`;
@@ -346,13 +367,22 @@ export default function Home() {
       }
   };
 
+  // Create a sanitized version of appConfig specifically for the ConfigurationPanel
+  const sanitizedAppConfigForPanel: AppConfig = {
+    ...appConfig, // Spread the original appConfig
+    systemInstruction: getSafeConfigString(appConfig.systemInstruction, 'SystemInstruction'),
+    promptATemplate: getSafeConfigString(appConfig.promptATemplate, 'PromptATemplate'),
+    promptBTemplate: getSafeConfigString(appConfig.promptBTemplate, 'PromptBTemplate'),
+    // apiConfig is an object, but its properties are numbers and are handled correctly by Input type="number"
+    // So, no need to sanitize apiConfig itself, unless its sub-properties could also become problematic objects
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Sheet open={isConfigPanelOpen} onOpenChange={setIsConfigPanelOpen}>
         <AppHeader />
         <ConfigurationPanel
-          config={appConfig}
+          config={sanitizedAppConfigForPanel} // Pass the sanitized version
           onConfigChange={setAppConfig}
         />
       </Sheet>
@@ -387,3 +417,4 @@ export default function Home() {
     </div>
   );
 }
+
