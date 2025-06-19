@@ -46,20 +46,18 @@ export default function Home() {
   }, []);
 
   const getCleanedPromptString = (promptInput: any): string => {
-    if (typeof promptInput === 'string') {
-      return promptInput;
-    }
     if (promptInput === null || promptInput === undefined) {
       return "";
     }
-    // Explicitly handle {prompt: "string_value"} if it comes as input, and it's the *only* key.
-    if (typeof promptInput === 'object' && promptInput !== null &&
+    if (typeof promptInput === 'string') {
+      return promptInput;
+    }
+    if (typeof promptInput === 'object' &&
         Object.keys(promptInput).length === 1 && 
         Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
         typeof promptInput.prompt === 'string') {
       return promptInput.prompt;
     }
-    // Fallback for other types
     return String(promptInput); 
   };
   
@@ -69,6 +67,7 @@ export default function Home() {
       try {
         return JSON.stringify(error.message);
       } catch {
+        // Deliberately no console.log here
         return "Failed to stringify error message object.";
       }
     }
@@ -76,33 +75,38 @@ export default function Home() {
     try {
       return JSON.stringify(error);
     } catch {
+      // Deliberately no console.log here
       return "An unknown error occurred.";
     }
   };
 
   const ensureStringContent = (content: any, defaultString: string = "No content provided"): string => {
-    if (typeof content === 'string') {
-      return content || defaultString; 
-    }
     if (content === null || content === undefined) {
       return defaultString;
     }
-    // Explicitly handle {prompt: "string_value"} if it's the *only* key.
-    if (typeof content === 'object' && content !== null &&
+    if (typeof content === 'string') {
+      return content || defaultString; 
+    }
+    
+    //This specific check for {prompt: "string"} should ideally be handled before calling ensureStringContent
+    // if the source (like AI response) might directly be this object.
+    // However, keeping it here for defense in depth.
+    if (typeof content === 'object' &&
+        content !== null && // Ensure content is not null
         Object.keys(content).length === 1 && 
         Object.prototype.hasOwnProperty.call(content, 'prompt') &&
         typeof content.prompt === 'string') {
       return content.prompt || defaultString; 
     }
-    // Handle other objects by stringifying
+
     if (typeof content === 'object' && content !== null) {
       try {
-        return JSON.stringify(content);
+        const str = JSON.stringify(content);
+        return str === '{}' ? `[Empty Object]` : str;
       } catch (e) {
-        return `[Unstringifiable Object: Keys: ${Object.keys(content).join(', ')}]`;
+        return `[Unstringifiable Object]`;
       }
     }
-    // Handle other primitives (numbers, booleans)
     return String(content);
   };
 
@@ -126,24 +130,40 @@ export default function Home() {
         ...appConfig.apiConfig,
       });
 
+      // Aggressive pre-processing for AI direct output
+      let finalResponseA = responses.responseA;
+      if (typeof responses.responseA === 'object' && responses.responseA !== null && Object.keys(responses.responseA).length === 1 && 'prompt' in responses.responseA && typeof responses.responseA.prompt === 'string') {
+        finalResponseA = responses.responseA.prompt;
+      }
+
+      let finalResponseB = responses.responseB;
+      if (typeof responses.responseB === 'object' && responses.responseB !== null && Object.keys(responses.responseB).length === 1 && 'prompt' in responses.responseB && typeof responses.responseB.prompt === 'string') {
+        finalResponseB = responses.responseB.prompt;
+      }
+
       const evaluationResult = await evaluateResponse({
         prompt: userPromptString, 
-        responseA: responses.responseA, 
-        responseB: responses.responseB, 
+        responseA: finalResponseA, 
+        responseB: finalResponseB, 
       });
+
+      let finalEvaluation = evaluationResult.evaluation;
+      if (typeof evaluationResult.evaluation === 'object' && evaluationResult.evaluation !== null && Object.keys(evaluationResult.evaluation).length === 1 && 'prompt' in evaluationResult.evaluation && typeof evaluationResult.evaluation.prompt === 'string') {
+        finalEvaluation = evaluationResult.evaluation.prompt;
+      }
 
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
         userPrompt: userPromptString, 
-        responseA: ensureStringContent(responses.responseA, "No response from Model A"),
-        responseB: ensureStringContent(responses.responseB, "No response from Model B"),
-        evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
+        responseA: ensureStringContent(finalResponseA, "No response from Model A"),
+        responseB: ensureStringContent(finalResponseB, "No response from Model B"),
+        evaluation: ensureStringContent(finalEvaluation, "No evaluation available"),
         timestamp: new Date(),
       };
       setInteractiveHistory(prev => [newTurn, ...prev]);
 
     } catch (error) {
-      console.error("Error during interactive evaluation:", error);
+      // console.error("Error during interactive evaluation:", error); // Re-enable if needed for debugging
       if (isClient) {
         toast({
           variant: "destructive",
@@ -175,28 +195,44 @@ export default function Home() {
           systemInstruction: appConfig.systemInstruction,
           ...appConfig.apiConfig,
         });
+        
+        // Aggressive pre-processing for AI direct output
+        let finalResponseA = responses.responseA;
+        if (typeof responses.responseA === 'object' && responses.responseA !== null && Object.keys(responses.responseA).length === 1 && 'prompt' in responses.responseA && typeof responses.responseA.prompt === 'string') {
+          finalResponseA = responses.responseA.prompt;
+        }
+
+        let finalResponseB = responses.responseB;
+        if (typeof responses.responseB === 'object' && responses.responseB !== null && Object.keys(responses.responseB).length === 1 && 'prompt' in responses.responseB && typeof responses.responseB.prompt === 'string') {
+          finalResponseB = responses.responseB.prompt;
+        }
 
         const evaluationResult = await evaluateResponse({
           prompt: userPromptString,
-          responseA: responses.responseA, 
-          responseB: responses.responseB, 
+          responseA: finalResponseA, 
+          responseB: finalResponseB, 
         });
+        
+        let finalEvaluation = evaluationResult.evaluation;
+        if (typeof evaluationResult.evaluation === 'object' && evaluationResult.evaluation !== null && Object.keys(evaluationResult.evaluation).length === 1 && 'prompt' in evaluationResult.evaluation && typeof evaluationResult.evaluation.prompt === 'string') {
+          finalEvaluation = evaluationResult.evaluation.prompt;
+        }
         
         results.push({
           id: item.id, 
           prompt: userPromptString, 
-          responseA: ensureStringContent(responses.responseA, "No response from Model A"),
-          responseB: ensureStringContent(responses.responseB, "No response from Model B"),
-          evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
+          responseA: ensureStringContent(finalResponseA, "No response from Model A"),
+          responseB: ensureStringContent(finalResponseB, "No response from Model B"),
+          evaluation: ensureStringContent(finalEvaluation, "No evaluation available"),
           timestamp: new Date(),
         });
 
       } catch (error) {
-        console.error(`Error processing batch item ${item.id}:`, error);
+        // console.error(`Error processing batch item ${item.id}:`, error); // Re-enable if needed for debugging
         results.push({
           id: item.id,
           prompt: userPromptString,
-          error: ensureStringContent(getSafeToastDescription(error), "An error occurred during processing."),
+          error: ensureStringContent(getSafeToastDescription(error), "An error occurred during processing."), // Ensure error is also stringified
           timestamp: new Date(),
         });
         if (isClient) {
@@ -261,3 +297,4 @@ export default function Home() {
     </div>
   );
 }
+    
