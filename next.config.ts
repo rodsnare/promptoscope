@@ -21,8 +21,19 @@ const nextConfig: NextConfig = {
     ],
   },
   allowedDevOrigins: ['https://*.cloudworkstations.dev'],
+
+  // Add Turbopack specific fallbacks
+  experimental: {
+    turbo: {
+      resolveFallbacks: {
+        'async_hooks': false,
+      },
+    },
+  },
+
   webpack: (config: WebpackConfiguration, { isServer }) => {
     if (!isServer) {
+      // Standard webpack fallback for when not using Turbopack
       // Prevent 'async_hooks' from being bundled on the client
       if (!config.resolve) {
         config.resolve = {};
