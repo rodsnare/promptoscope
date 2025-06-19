@@ -67,7 +67,7 @@ function getCleanedPromptString(promptInput: any): string {
   ) {
     return promptInput.prompt;
   }
-  // For any other object type
+  
   if (typeof promptInput === 'object' && promptInput !== null) {
     return "[Invalid Prompt Structure]";
   }
@@ -129,7 +129,6 @@ const getSafeToastDescription = (error: any): string => {
   }
 
   if (typeof potentialMessageSource === 'object' && potentialMessageSource !== null) {
-    // Check for direct {prompt: "string"} structure first
     if (Object.keys(potentialMessageSource).length === 1 &&
         Object.prototype.hasOwnProperty.call(potentialMessageSource, 'prompt') &&
         typeof potentialMessageSource.prompt === 'string') {
@@ -197,19 +196,19 @@ export default function Home() {
   }, []);
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
-    const safeUserPrompt = typeof userPrompt === 'string' ? userPrompt : '[Invalid User Prompt for Interpolation]';
-    return template.replace(/\{\{prompt\}\}/g, safeUserPrompt);
+    // userPrompt here is expected to be a string already due to upstream sanitization
+    return template.replace(/\{\{prompt\}\}/g, userPrompt);
   };
 
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
     
-    let userPromptForState = getCleanedPromptString(userInput);
-    userPromptForState = forceStringOrVerySpecificPlaceholder(userPromptForState, 'UserPrompt');
+    let userPromptString = getCleanedPromptString(userInput);
+    userPromptString = forceStringOrVerySpecificPlaceholder(userPromptString, 'UserPrompt');
 
     try {
-      const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
-      const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptForState);
+      const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
+      const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptString);
 
       const responses = await compareResponses({
         promptA: fullPromptA,
@@ -219,7 +218,7 @@ export default function Home() {
       });
 
       const evaluationResult = await evaluateResponse({
-        prompt: userPromptForState, 
+        prompt: userPromptString, 
         responseA: forceStringOrVerySpecificPlaceholder(responses.responseA, 'RawResponseAForEval'), 
         responseB: forceStringOrVerySpecificPlaceholder(responses.responseB, 'RawResponseBForEval'),
       });
@@ -229,14 +228,14 @@ export default function Home() {
       let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation');
 
       // Final override checks
-      if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in userPromptForState override]";
-      if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA override]";
-      if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB override]";
-      if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[Object detected in finalEvaluation override]";
+      if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[FINAL_OVERRIDE: UserPrompt was object]";
+      if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[FINAL_OVERRIDE: ResponseA was object]";
+      if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[FINAL_OVERRIDE: ResponseB was object]";
+      if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[FINAL_OVERRIDE: Evaluation was object]";
       
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
-        userPrompt: userPromptForState,
+        userPrompt: userPromptString,
         responseA: finalResponseA,
         responseB: finalResponseB,
         evaluation: finalEvaluation,
@@ -262,17 +261,17 @@ export default function Home() {
     setBatchProgress(0);
     const results: ProcessedBatchItem[] = [];
 
-    for (let i = 0;0 && i < fileContent.length; i++) {
+    for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
       
-      let userPromptForState = getCleanedPromptString(item.prompt);
-      userPromptForState = forceStringOrVerySpecificPlaceholder(userPromptForState, 'BatchItemPrompt');
+      let promptString = getCleanedPromptString(item.prompt);
+      promptString = forceStringOrVerySpecificPlaceholder(promptString, 'BatchItemPrompt');
       
-      let itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID');
+      let itemIdString = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID');
 
       try {
-        const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
-        const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptForState);
+        const fullPromptA = interpolatePrompt(appConfig.promptATemplate, promptString);
+        const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, promptString);
 
         const responses = await compareResponses({
           promptA: fullPromptA,
@@ -282,7 +281,7 @@ export default function Home() {
         });
         
         const evaluationResult = await evaluateResponse({
-          prompt: userPromptForState, 
+          prompt: promptString, 
           responseA: forceStringOrVerySpecificPlaceholder(responses.responseA, 'RawResponseAForBatchEval'),
           responseB: forceStringOrVerySpecificPlaceholder(responses.responseB, 'RawResponseBForBatchEval'),
         });
@@ -292,15 +291,15 @@ export default function Home() {
         let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'BatchEvaluation');
         
         // Final override checks
-        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = "[Object detected in itemIdForState override]";
-        if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in batch userPromptForState override]";
-        if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA for batch override]";
-        if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB for batch override]";
-        if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[Object detected in finalEvaluation for batch override]";
+        if (typeof itemIdString === 'object' && itemIdString !== null) itemIdString = "[FINAL_OVERRIDE: BatchItemID was object]";
+        if (typeof promptString === 'object' && promptString !== null) promptString = "[FINAL_OVERRIDE: BatchPrompt was object]";
+        if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[FINAL_OVERRIDE: BatchResponseA was object]";
+        if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[FINAL_OVERRIDE: BatchResponseB was object]";
+        if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[FINAL_OVERRIDE: BatchEvaluation was object]";
         
         results.push({
-          id: itemIdForState,
-          prompt: userPromptForState, 
+          id: itemIdString,
+          prompt: promptString, 
           responseA: finalResponseA,
           responseB: finalResponseB,
           evaluation: finalEvaluation,
@@ -308,25 +307,27 @@ export default function Home() {
         });
 
       } catch (error) {
-        let errorDescription = getSafeToastDescription(error);
-        let errorForState = forceStringOrVerySpecificPlaceholder(errorDescription, 'BatchItemError');
+        let errorDescriptionString = getSafeToastDescription(error);
+        // Ensure errorDescriptionString is also forced to be a string before storing
+        errorDescriptionString = forceStringOrVerySpecificPlaceholder(errorDescriptionString, 'BatchItemError');
+
 
         // Final override checks for error case values
-        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = "[Object detected in itemIdForState (error path) override]";
-        if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[Object detected in batch userPromptForState (error path) override]";
-        if (typeof errorForState === 'object' && errorForState !== null) errorForState = "[Object detected in errorForState override]";
+        if (typeof itemIdString === 'object' && itemIdString !== null) itemIdString = "[FINAL_OVERRIDE: BatchItemID (error path) was object]";
+        if (typeof promptString === 'object' && promptString !== null) promptString = "[FINAL_OVERRIDE: BatchPrompt (error path) was object]";
+        if (typeof errorDescriptionString === 'object' && errorDescriptionString !== null) errorDescriptionString = "[FINAL_OVERRIDE: BatchErrorDescription was object]";
         
         results.push({
-          id: itemIdForState, 
-          prompt: userPromptForState,
-          error: errorForState, 
+          id: itemIdString, 
+          prompt: promptString,
+          error: errorDescriptionString, 
           timestamp: new Date(),
         });
         if (isClient) {
            toast({
             variant: "destructive",
-            title: `Error processing item ${itemIdForState}`,
-            description: errorForState, 
+            title: `Error processing item ${itemIdString}`,
+            description: errorDescriptionString, 
           });
         }
       }
@@ -385,16 +386,5 @@ export default function Home() {
   );
 }
     
-
-    
-
-
-
-
-    
-
-    
-
-
 
     
