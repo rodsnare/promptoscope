@@ -69,10 +69,9 @@ function getCleanedPromptString(promptInput: any): string {
   }
   
   if (typeof promptInput === 'object' && promptInput !== null) {
-    // For other objects, return a fixed placeholder.
     return "[Invalid Prompt Structure]";
   }
-  return String(promptInput); // Fallback for other types
+  return String(promptInput); 
 }
 
 
@@ -104,7 +103,7 @@ function ensureStringContent(content: any, defaultString: string = "No content p
         } else if (stringified === '{}' && Object.keys(content).length === 0) {
            return "[Empty Object Content]";
         }
-        return stringified; // Return stringified object if not the specific {prompt: string} case
+        return stringified;
       } catch {
         return "[Unstringifiable Object Content]";
       }
@@ -172,9 +171,13 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
     if (Object.keys(value).length === 1 && Object.prototype.hasOwnProperty.call(value, 'prompt') && typeof value.prompt === 'string') {
       return value.prompt;
     }
-    return `[${fieldName}: UNEXPECTED_OBJECT_STRUCTURE_ENCOUNTERED]`;
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+        return `[${fieldName}: UNEXPECTED_EMPTY_OBJECT_ENCOUNTERED]`;
+    }
+    return `[${fieldName}: UNEXPECTED_OBJECT_STRUCTURE_ENCOUNTERED (keys: ${keys.join(', ')})]`;
   }
-  return `[${fieldName}: UNKNOWN_DATA_TYPE_ENCOUNTERED]`;
+  return `[${fieldName}: UNKNOWN_DATA_TYPE_ENCOUNTERED_(${typeof value})]`;
 }
 
 
@@ -203,12 +206,12 @@ export default function Home() {
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
     
-    let userPromptString = getCleanedPromptString(userInput); 
-    userPromptString = forceStringOrVerySpecificPlaceholder(userPromptString, 'UserPrompt');
+    let cleanedUserInput = getCleanedPromptString(userInput); 
+    let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserInput, 'UserPrompt');
 
     try {
-      const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
-      const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptString);
+      const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptForState);
+      const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, userPromptForState);
 
       const responses = await compareResponses({
         promptA: fullPromptA,
@@ -221,21 +224,22 @@ export default function Home() {
       let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'ResponseB');
       
       const evaluationResult = await evaluateResponse({
-        prompt: userPromptString, 
+        prompt: userPromptForState, 
         responseA: finalResponseA, 
         responseB: finalResponseB, 
       });
       
       let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'Evaluation');
 
-      if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[FINAL_OVERRIDE_USER_PROMPT_WAS_OBJECT]";
+      // Final override checks
+      if (typeof userPromptForState === 'object' && userPromptForState !== null) userPromptForState = "[FINAL_OVERRIDE_USER_PROMPT_WAS_OBJECT]";
       if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[FINAL_OVERRIDE_RESPONSE_A_WAS_OBJECT]";
       if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[FINAL_OVERRIDE_RESPONSE_B_WAS_OBJECT]";
       if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[FINAL_OVERRIDE_EVALUATION_WAS_OBJECT]";
       
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
-        userPrompt: userPromptString,
+        userPrompt: userPromptForState,
         responseA: finalResponseA,
         responseB: finalResponseB,
         evaluation: finalEvaluation,
@@ -264,14 +268,13 @@ export default function Home() {
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
       
-      let promptString = getCleanedPromptString(item.prompt); 
-      promptString = forceStringOrVerySpecificPlaceholder(promptString, 'BatchItemPrompt'); 
-      
-      let itemIdString = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID'); 
+      let cleanedItemPrompt = getCleanedPromptString(item.prompt); 
+      let promptForState = forceStringOrVerySpecificPlaceholder(cleanedItemPrompt, 'BatchItemPrompt'); 
+      let itemIdForState = forceStringOrVerySpecificPlaceholder(String(item.id), 'BatchItemID'); 
 
       try {
-        const fullPromptA = interpolatePrompt(appConfig.promptATemplate, promptString);
-        const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, promptString);
+        const fullPromptA = interpolatePrompt(appConfig.promptATemplate, promptForState);
+        const fullPromptB = interpolatePrompt(appConfig.promptBTemplate, promptForState);
 
         const responses = await compareResponses({
           promptA: fullPromptA,
@@ -284,22 +287,23 @@ export default function Home() {
         let finalResponseB = forceStringOrVerySpecificPlaceholder(responses.responseB, 'BatchResponseB');
 
         const evaluationResult = await evaluateResponse({
-          prompt: promptString, 
+          prompt: promptForState, 
           responseA: finalResponseA,
           responseB: finalResponseB,
         });
 
         let finalEvaluation = forceStringOrVerySpecificPlaceholder(evaluationResult.evaluation, 'BatchEvaluation');
         
-        if (typeof itemIdString === 'object' && itemIdString !== null) itemIdString = "[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT]";
-        if (typeof promptString === 'object' && promptString !== null) promptString = "[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT]";
+        // Final override checks for batch
+        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = "[FINAL_OVERRIDE_BATCH_ID_WAS_OBJECT]";
+        if (typeof promptForState === 'object' && promptForState !== null) promptForState = "[FINAL_OVERRIDE_BATCH_PROMPT_WAS_OBJECT]";
         if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[FINAL_OVERRIDE_BATCH_RSPA_WAS_OBJECT]";
         if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[FINAL_OVERRIDE_BATCH_RSPB_WAS_OBJECT]";
         if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[FINAL_OVERRIDE_BATCH_EVAL_WAS_OBJECT]";
         
         results.push({
-          id: itemIdString,
-          prompt: promptString, 
+          id: itemIdForState,
+          prompt: promptForState, 
           responseA: finalResponseA,
           responseB: finalResponseB,
           evaluation: finalEvaluation,
@@ -307,24 +311,25 @@ export default function Home() {
         });
 
       } catch (error) {
-        let errorDescriptionString = getSafeToastDescription(error); 
-        errorDescriptionString = forceStringOrVerySpecificPlaceholder(errorDescriptionString, 'BatchItemError');
+        let errorDescriptionAttempt = getSafeToastDescription(error); 
+        let errorDescriptionForState = forceStringOrVerySpecificPlaceholder(errorDescriptionAttempt, 'BatchItemErrorDescription');
 
-        if (typeof itemIdString === 'object' && itemIdString !== null) itemIdString = "[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT]";
-        if (typeof promptString === 'object' && promptString !== null) promptString = "[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT]";
-        if (typeof errorDescriptionString === 'object' && errorDescriptionString !== null) errorDescriptionString = "[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT]";
+        // Final override checks for batch error path
+        if (typeof itemIdForState === 'object' && itemIdForState !== null) itemIdForState = "[FINAL_OVERRIDE_BATCH_ID_ERR_PATH_WAS_OBJECT]";
+        if (typeof promptForState === 'object' && promptForState !== null) promptForState = "[FINAL_OVERRIDE_BATCH_PROMPT_ERR_PATH_WAS_OBJECT]";
+        if (typeof errorDescriptionForState === 'object' && errorDescriptionForState !== null) errorDescriptionForState = "[FINAL_OVERRIDE_BATCH_ERR_DESC_WAS_OBJECT]";
         
         results.push({
-          id: itemIdString, 
-          prompt: promptString,
-          error: errorDescriptionString, 
+          id: itemIdForState, 
+          prompt: promptForState,
+          error: errorDescriptionForState, 
           timestamp: new Date(),
         });
         if (isClient) {
            toast({
             variant: "destructive",
-            title: `Error processing item ${itemIdString}`, 
-            description: errorDescriptionString, 
+            title: `Error processing item ${itemIdForState}`, 
+            description: errorDescriptionForState, 
           });
         }
       }
@@ -382,6 +387,3 @@ export default function Home() {
     </div>
   );
 }
-    
-
-    

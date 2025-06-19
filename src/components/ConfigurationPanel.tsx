@@ -17,7 +17,7 @@ interface ConfigurationPanelProps {
 
 const ensureStringForConfig = (content: any): string => {
   if (content === null || content === undefined) {
-    return ""; 
+    return "";
   }
   if (typeof content === 'string') {
     return content;
@@ -25,7 +25,6 @@ const ensureStringForConfig = (content: any): string => {
   if (typeof content === 'number' || typeof content === 'boolean') {
     return String(content);
   }
-  
   if (
     typeof content === 'object' &&
     content !== null &&
@@ -35,21 +34,14 @@ const ensureStringForConfig = (content: any): string => {
   ) {
     return (content as { prompt: string }).prompt;
   }
- 
   if (typeof content === 'object' && content !== null) {
-    try {
-      const strVal = JSON.stringify(content);
-      if (strVal === '{}' && Object.keys(content).length > 0) {
-        return `[Complex Config Object: ${Object.keys(content).join(', ')}]`;
-      } else if (strVal === '{}' && Object.keys(content).length === 0) {
+    const keys = Object.keys(content);
+    if (keys.length === 0) {
         return "[Empty Config Object]";
-      }
-      return strVal; 
-    } catch {
-      return "[Unstringifiable Config Object]";
     }
+    return `[Config Value Was Unexpected Object (keys: ${keys.join(', ')})]`;
   }
-  return String(content); 
+  return String(content);
 };
 
 
@@ -187,6 +179,3 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 };
 
 export default ConfigurationPanel;
-
-
-    
