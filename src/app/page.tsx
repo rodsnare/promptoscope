@@ -55,12 +55,11 @@ export default function Home() {
     // Explicitly handle {prompt: "string_value"} if it comes as input, and it's the *only* key.
     if (typeof promptInput === 'object' && promptInput !== null &&
         Object.keys(promptInput).length === 1 && 
-        promptInput.hasOwnProperty('prompt') &&
+        Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
         typeof promptInput.prompt === 'string') {
       return promptInput.prompt;
     }
-    // Fallback for other types - this might be risky if an unexpected object comes.
-    // console.warn(`getCleanedPromptString: Unexpected promptInput type: ${typeof promptInput}. Converting to string. Value:`, promptInput);
+    // Fallback for other types
     return String(promptInput); 
   };
   
@@ -83,26 +82,23 @@ export default function Home() {
 
   const ensureStringContent = (content: any, defaultString: string = "No content provided"): string => {
     if (typeof content === 'string') {
-      return content || defaultString; // Handles empty string by returning default
+      return content || defaultString; 
     }
     if (content === null || content === undefined) {
       return defaultString;
     }
-    // Explicitly handle {prompt: "string_value"} where 'prompt' is the ONLY key
+    // Explicitly handle {prompt: "string_value"} if it's the *only* key.
     if (typeof content === 'object' && content !== null &&
         Object.keys(content).length === 1 && 
-        content.hasOwnProperty('prompt') &&
+        Object.prototype.hasOwnProperty.call(content, 'prompt') &&
         typeof content.prompt === 'string') {
-      return content.prompt || defaultString; // Handles empty prompt string
+      return content.prompt || defaultString; 
     }
-    // Handle other objects
+    // Handle other objects by stringifying
     if (typeof content === 'object' && content !== null) {
-      // console.warn('ensureStringContent: Attempting to stringify unexpected object:', content);
       try {
-        // If it's an object but not the simple {prompt: string} structure, stringify it.
         return JSON.stringify(content);
       } catch (e) {
-        // console.error('ensureStringContent: Failed to stringify object.', e);
         return `[Unstringifiable Object: Keys: ${Object.keys(content).join(', ')}]`;
       }
     }
@@ -132,13 +128,13 @@ export default function Home() {
 
       const evaluationResult = await evaluateResponse({
         prompt: userPromptString, 
-        responseA: responses.responseA, // Raw response from AI
-        responseB: responses.responseB, // Raw response from AI
+        responseA: responses.responseA, 
+        responseB: responses.responseB, 
       });
 
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
-        userPrompt: userPromptString, // Already cleaned
+        userPrompt: userPromptString, 
         responseA: ensureStringContent(responses.responseA, "No response from Model A"),
         responseB: ensureStringContent(responses.responseB, "No response from Model B"),
         evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
@@ -167,8 +163,6 @@ export default function Home() {
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
-      // item.prompt here comes from the JSON file, item.id too.
-      // getCleanedPromptString should handle if item.prompt is {prompt:"..."}
       const userPromptString = getCleanedPromptString(item.prompt); 
 
       try {
@@ -184,13 +178,13 @@ export default function Home() {
 
         const evaluationResult = await evaluateResponse({
           prompt: userPromptString,
-          responseA: responses.responseA, // Raw response
-          responseB: responses.responseB, // Raw response
+          responseA: responses.responseA, 
+          responseB: responses.responseB, 
         });
         
         results.push({
-          id: item.id, // item.id is passed as-is to BatchItemCard
-          prompt: userPromptString, // Cleaned prompt string
+          id: item.id, 
+          prompt: userPromptString, 
           responseA: ensureStringContent(responses.responseA, "No response from Model A"),
           responseB: ensureStringContent(responses.responseB, "No response from Model B"),
           evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
@@ -202,7 +196,6 @@ export default function Home() {
         results.push({
           id: item.id,
           prompt: userPromptString,
-          // getSafeToastDescription for error string, then ensureStringContent as a final guarantee.
           error: ensureStringContent(getSafeToastDescription(error), "An error occurred during processing."),
           timestamp: new Date(),
         });
