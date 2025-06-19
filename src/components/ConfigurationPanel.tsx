@@ -100,13 +100,10 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
     }
   };
   
-  // These values are for the Textarea components.
-  // We apply ensureStringForConfig here directly.
-  // console.log("ConfigurationPanel: Preparing values for Textarea components...");
   const systemInstructionValue = ensureStringForConfig(config.systemInstruction, 'config.systemInstruction_for_textarea');
-  const promptATemplateValue = ensureStringForConfig(config.promptATemplate, 'config.promptATemplate_for_textarea');
-  const promptBTemplateValue = ensureStringForConfig(config.promptBTemplate, 'config.promptBTemplate_for_textarea');
-  // console.log("ConfigurationPanel: Values prepared for Textarea components.");
+  // const promptATemplateValue = ensureStringForConfig(config.promptATemplate, 'config.promptATemplate_for_textarea');
+  // const promptBTemplateValue = ensureStringForConfig(config.promptBTemplate, 'config.promptBTemplate_for_textarea');
+
 
   return (
     <SheetContent className="w-full sm:max-w-lg md:max-w-xl flex flex-col" side="right">
@@ -132,12 +129,13 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               />
             </div>
 
+            {/*
             <div>
               <Label htmlFor="promptATemplate" className="text-lg font-semibold">Prompt A Template</Label>
               <Textarea
                 id="promptATemplate"
                 name="promptATemplate"
-                value={promptATemplateValue}
+                // value={promptATemplateValue}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model A."
                 className="mt-1 min-h-[100px] font-code"
@@ -151,7 +149,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="promptBTemplate"
                 name="promptBTemplate"
-                value={promptBTemplateValue}
+                // value={promptBTemplateValue}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model B, more creatively."
                 className="mt-1 min-h-[100px] font-code"
@@ -203,6 +201,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                 />
               </div>
             </div>
+            */}
           </div>
         </ScrollArea>
       ) : (
@@ -220,3 +219,5 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
 };
 
 export default ConfigurationPanel;
+
+    
