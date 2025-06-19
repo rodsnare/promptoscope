@@ -5,40 +5,22 @@ import { Separator } from '@/components/ui/separator';
 import type { ConversationTurn } from '@/types';
 import { Bot, UserCircle, CheckSquare } from 'lucide-react';
 
-// Helper to render AI-generated content (responseA, responseB, evaluation)
-const renderAIOutput = (content: any): string => {
-  // Check if content is the specific object {prompt: "string_value"}
-  if (typeof content === 'object' && content !== null && Object.prototype.hasOwnProperty.call(content, 'prompt') && typeof content.prompt === 'string') {
-    return content.prompt || "No response";
-  }
-  // Check if it's already a string
-  if (typeof content === 'string') {
-    return content || "No response";
-  }
-  // Handle null or undefined
-  if (content === null || content === undefined) {
-    return "No response";
-  }
-  // Fallback for other types (objects not matching the specific structure, numbers, booleans)
-  // console.warn('renderAIOutput: Rendering placeholder for unexpected structure:', JSON.stringify(content));
-  return "[Unsupported Content]";
+// Helper for AI responses & evaluation - expects data to be pre-cleaned to string in page.tsx
+const renderCleanedString = (content: string | undefined | null, defaultText: string = "N/A"): string => {
+  return content && typeof content === 'string' && content.trim() ? content : defaultText;
 };
 
-// Helper to display the main user prompt
+// Robust helper for the main user prompt, as it comes more directly from input
 const getDisplayableUserPrompt = (promptInput: any): string => {
-  // Priority: Check if promptInput is the specific object {prompt: "string_value"}
-  if (typeof promptInput === 'object' && promptInput !== null && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string') {
-    return promptInput.prompt || "No user prompt";
-  }
-  // Then, check if it's already a string
   if (typeof promptInput === 'string') {
     return promptInput || "No user prompt";
   }
-  // Handle null or undefined
   if (promptInput === null || promptInput === undefined) {
     return "No user prompt";
   }
-  // Fallback for other types
+  if (typeof promptInput === 'object' && promptInput.hasOwnProperty('prompt') && typeof promptInput.prompt === 'string') {
+    return promptInput.prompt || "No user prompt";
+  }
   // console.warn('getDisplayableUserPrompt: Rendering placeholder for unexpected prompt structure:', JSON.stringify(promptInput));
   return "[Invalid User Prompt Format]";
 };
@@ -67,7 +49,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model A Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-              {renderAIOutput(turn.responseA)}
+              {renderCleanedString(turn.responseA, "No response from Model A")}
             </div>
           </div>
           <div>
@@ -75,7 +57,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
               <Bot className="mr-2 h-5 w-5" /> Model B Response
             </h3>
             <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-              {renderAIOutput(turn.responseB)}
+              {renderCleanedString(turn.responseB, "No response from Model B")}
             </div>
           </div>
         </div>
@@ -87,7 +69,7 @@ const ConversationTurnCard: React.FC<ConversationTurnCardProps> = ({ turn }) => 
             <CheckSquare className="mr-2 h-5 w-5" /> Evaluation
           </h3>
           <div className="prose prose-sm max-w-none p-3 bg-background/50 rounded-md whitespace-pre-wrap font-body min-h-[50px]">
-            {renderAIOutput(turn.evaluation)}
+            {renderCleanedString(turn.evaluation, "No evaluation")}
           </div>
         </div>
       </CardContent>

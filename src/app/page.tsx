@@ -72,6 +72,30 @@ export default function Home() {
     }
   };
 
+  const ensureStringContent = (content: any, defaultString: string = "No content"): string => {
+    if (typeof content === 'string') {
+      return content || defaultString;
+    }
+    if (content === null || content === undefined) {
+      return defaultString;
+    }
+    // Specifically check for { prompt: "string_value" }
+    if (typeof content === 'object' && content !== null && 'prompt' in content && typeof content.prompt === 'string') {
+      return content.prompt || defaultString;
+    }
+    // Handle other objects by trying to stringify them
+    if (typeof content === 'object' && content !== null) {
+      // console.warn('ensureStringContent: Converting unexpected object to string:', content);
+      try {
+        return JSON.stringify(content);
+      } catch {
+        return "[Unstringifiable Object]";
+      }
+    }
+    // Handle other primitives like numbers or booleans
+    return String(content);
+  };
+
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
     return template.replace(/\{\{prompt\}\}/g, userPrompt);
@@ -100,10 +124,10 @@ export default function Home() {
 
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
-        userPrompt: userPromptString,
-        responseA: responses.responseA,
-        responseB: responses.responseB,
-        evaluation: evaluationResult.evaluation,
+        userPrompt: userPromptString, // Already cleaned
+        responseA: ensureStringContent(responses.responseA, "No response from Model A"),
+        responseB: ensureStringContent(responses.responseB, "No response from Model B"),
+        evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation"),
         timestamp: new Date(),
       };
       setInteractiveHistory(prev => [newTurn, ...prev]);
@@ -114,7 +138,7 @@ export default function Home() {
         toast({
           variant: "destructive",
           title: "Evaluation Error",
-          description: getSafeToastDescription(error),
+          description: getSafeToastDescription(error), // Toast description is handled by its own safe stringifier
         });
       }
     }
@@ -149,11 +173,11 @@ export default function Home() {
         });
         
         results.push({
-          ...item,
-          prompt: userPromptString, 
-          responseA: responses.responseA,
-          responseB: responses.responseB,
-          evaluation: evaluationResult.evaluation,
+          ...item, // item.id is part of item
+          prompt: userPromptString, // Already cleaned
+          responseA: ensureStringContent(responses.responseA, "No response from Model A"),
+          responseB: ensureStringContent(responses.responseB, "No response from Model B"),
+          evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation"),
           timestamp: new Date(),
         });
 
@@ -161,8 +185,9 @@ export default function Home() {
         console.error(`Error processing batch item ${item.id}:`, error);
         results.push({
           ...item,
-          prompt: userPromptString, 
-          error: getSafeToastDescription(error), // Store safe string here too
+          prompt: userPromptString,
+          // Ensure the 'error' field in the state is also a robust string
+          error: ensureStringContent(getSafeToastDescription(error), "An error occurred during processing."),
           timestamp: new Date(),
         });
         if (isClient) {
@@ -227,4 +252,3 @@ export default function Home() {
     </div>
   );
 }
-
