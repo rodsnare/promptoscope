@@ -23,10 +23,10 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ['https://*.cloudworkstations.dev'],
 
-  // Add Turbopack specific fallbacks
+  // Add Turbopack specific alias
   experimental: {
     turbo: {
-      resolveFallbacks: {
+      resolveAlias: {
         // Use a path relative to the project root for Turbopack
         'async_hooks': './src/lib/empty-module.js',
       },
