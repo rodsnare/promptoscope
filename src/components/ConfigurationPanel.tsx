@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -13,6 +14,42 @@ interface ConfigurationPanelProps {
   config: AppConfig;
   onConfigChange: (newConfig: AppConfig) => void;
 }
+
+const ensureStringForConfig = (content: any): string => {
+  if (content === null || content === undefined) {
+    return "";
+  }
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (typeof content === 'number' || typeof content === 'boolean') {
+    return String(content);
+  }
+  // Specifically check for the {prompt: "string"} structure
+  if (
+    typeof content === 'object' &&
+    content !== null &&
+    Object.keys(content).length === 1 &&
+    Object.prototype.hasOwnProperty.call(content, 'prompt') &&
+    typeof (content as { prompt: any }).prompt === 'string'
+  ) {
+    return (content as { prompt: string }).prompt;
+  }
+  // Fallback for other unexpected object types in config values
+  if (typeof content === 'object' && content !== null) {
+    try {
+      const strVal = JSON.stringify(content);
+      if (strVal === '{}' && Object.keys(content).length > 0) {
+        return `[Complex Config Object: ${Object.keys(content).join(', ')}]`;
+      }
+      return strVal;
+    } catch {
+      return "[Unstringifiable Config Object]";
+    }
+  }
+  return String(content); // Final fallback
+};
+
 
 const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfigChange }) => {
   const [isClient, setIsClient] = useState(false);
@@ -52,7 +89,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="systemInstruction"
                 name="systemInstruction"
-                value={config.systemInstruction}
+                value={ensureStringForConfig(config.systemInstruction)}
                 onChange={handleInputChange}
                 placeholder="e.g., You are a helpful AI assistant."
                 className="mt-1 min-h-[100px] font-code"
@@ -65,7 +102,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="promptATemplate"
                 name="promptATemplate"
-                value={config.promptATemplate}
+                value={ensureStringForConfig(config.promptATemplate)}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model A."
                 className="mt-1 min-h-[100px] font-code"
@@ -79,7 +116,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
               <Textarea
                 id="promptBTemplate"
                 name="promptBTemplate"
-                value={config.promptBTemplate}
+                value={ensureStringForConfig(config.promptBTemplate)}
                 onChange={handleInputChange}
                 placeholder="e.g., User asks: {{prompt}}. Respond as Model B, more creatively."
                 className="mt-1 min-h-[100px] font-code"
