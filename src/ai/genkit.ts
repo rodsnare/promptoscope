@@ -4,8 +4,8 @@ import {nextPlugin} from '@genkit-ai/next'; // Import the nextPlugin
 
 export const ai = genkit({
   plugins: [
+    nextPlugin(), // Initialize nextPlugin first
     googleAI(),
-    nextPlugin(), // Add the nextPlugin
   ],
   model: 'googleai/gemini-2.0-flash',
 });

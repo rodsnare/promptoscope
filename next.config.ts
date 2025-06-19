@@ -1,7 +1,7 @@
 
 import type {NextConfig} from 'next';
 import type {Configuration as WebpackConfiguration} from 'webpack';
-import path from 'path'; // Import path
+import path from 'path'; // Keep path import for now
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -27,7 +27,8 @@ const nextConfig: NextConfig = {
   experimental: {
     turbo: {
       resolveFallbacks: {
-        'async_hooks': path.resolve(__dirname, 'src/lib/empty-module.js'),
+        // Use a path relative to the project root for Turbopack
+        'async_hooks': './src/lib/empty-module.js',
       },
     },
   },
