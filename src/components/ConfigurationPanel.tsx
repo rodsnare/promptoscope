@@ -17,7 +17,7 @@ interface ConfigurationPanelProps {
 
 const ensureStringForConfig = (content: any): string => {
   if (content === null || content === undefined) {
-    return "";
+    return ""; // Default to empty string for null/undefined
   }
   if (typeof content === 'string') {
     return content;
@@ -39,15 +39,16 @@ const ensureStringForConfig = (content: any): string => {
   if (typeof content === 'object' && content !== null) {
     try {
       const strVal = JSON.stringify(content);
+      // If it stringifies to {} but has keys, it's a complex object we can't render directly
       if (strVal === '{}' && Object.keys(content).length > 0) {
         return `[Complex Config Object: ${Object.keys(content).join(', ')}]`;
       }
-      return strVal;
+      return strVal; // Return the stringified object
     } catch {
-      return "[Unstringifiable Config Object]";
+      return "[Unstringifiable Config Object]"; // If JSON.stringify fails
     }
   }
-  return String(content); // Final fallback
+  return String(content); // Final fallback for any other type
 };
 
 
