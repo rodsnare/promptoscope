@@ -39,6 +39,7 @@ function findNestedPromptString(obj: any): string | null {
 
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      // Check if the property is an object and not null before recursing
       if (typeof obj[key] === 'object' && obj[key] !== null) {
          const nestedResult = findNestedPromptString(obj[key]);
          if (nestedResult !== null) {
@@ -61,6 +62,7 @@ const getCleanedPromptString = (promptInput: any): string => {
     return String(promptInput);
   }
   if (typeof promptInput === 'object') {
+    // Check for { prompt: "string_value" }
     if (
       Object.keys(promptInput).length === 1 &&
       Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
@@ -68,6 +70,7 @@ const getCleanedPromptString = (promptInput: any): string => {
     ) {
       return promptInput.prompt;
     }
+    // For other object types, return a placeholder.
     return "[Invalid Prompt Structure]";
   }
   // Fallback for other types (e.g. function, symbol)
@@ -80,24 +83,28 @@ const ensureStringContent = (content: any, defaultString: string = "No content p
     return defaultString;
   }
   if (typeof content === 'string') {
-    return content || defaultString;
+    return content || defaultString; // Ensure non-empty string if original string was empty
   }
   if (typeof content === 'number' || typeof content === 'boolean') {
     return String(content);
   }
   if (typeof content === 'object') {
+    // Check for the specific {prompt: "string"} structure first
     if (
       Object.keys(content).length === 1 &&
       Object.prototype.hasOwnProperty.call(content, 'prompt') &&
       typeof content.prompt === 'string'
     ) {
-      return content.prompt || defaultString;
+      return content.prompt || defaultString; // Ensure non-empty string
     }
+    // Try to stringify other objects, with more informative placeholders
     try {
       const str = JSON.stringify(content);
+      // Check if stringify resulted in "{}" for a non-empty object
       if (str === '{}' && Object.keys(content).length > 0) {
          return `[Object Content (keys: ${Object.keys(content).join(', ')})]`;
       } else if (str === '{}' && Object.keys(content).length === 0) {
+         // Empty object
          return `[Empty Object Content]`;
       }
       return str;
@@ -105,6 +112,7 @@ const ensureStringContent = (content: any, defaultString: string = "No content p
       return "[Unstringifiable Object Content]";
     }
   }
+  // Fallback for any other type (e.g. function, symbol)
   return String(content); 
 };
 
@@ -127,6 +135,7 @@ const getSafeToastDescription = (error: any): string => {
   if (typeof potentialMessageSource === 'string') {
     messageToDisplay = potentialMessageSource;
   } else if (typeof potentialMessageSource === 'object' && potentialMessageSource !== null) {
+    // Direct check for {prompt: "string"}
     if (
       Object.keys(potentialMessageSource).length === 1 &&
       Object.prototype.hasOwnProperty.call(potentialMessageSource, 'prompt') &&
@@ -134,10 +143,12 @@ const getSafeToastDescription = (error: any): string => {
     ) {
       messageToDisplay = potentialMessageSource.prompt;
     } else {
+      // Fallback to findNestedPromptString for more complex objects
       const nestedPrompt = findNestedPromptString(potentialMessageSource);
       if (nestedPrompt !== null) {
         messageToDisplay = nestedPrompt;
       } else {
+        // Final attempt: JSON.stringify
         try {
           const stringified = JSON.stringify(potentialMessageSource);
           if (stringified === '{}' && Object.keys(potentialMessageSource).length > 0) {
@@ -156,7 +167,12 @@ const getSafeToastDescription = (error: any): string => {
       messageToDisplay = String(potentialMessageSource);
   }
 
-  return messageToDisplay || "An unknown error occurred.";
+  const finalMessage = messageToDisplay || "An unknown error occurred.";
+  // Final guard: if somehow messageToDisplay is an object, return placeholder
+  if (typeof finalMessage === 'object' && finalMessage !== null) {
+    return "[Internal Toast Error: Object Detected]";
+  }
+  return finalMessage;
 };
 
 
@@ -185,7 +201,9 @@ export default function Home() {
 
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
-    const userPromptString = getCleanedPromptString(userInput);
+    let userPromptString = getCleanedPromptString(userInput);
+    if (typeof userPromptString === 'object') userPromptString = "[Object in userPromptString]";
+
 
     try {
       const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
@@ -203,13 +221,23 @@ export default function Home() {
         responseA: ensureStringContent(responses.responseA, "No response from Model A's source"),
         responseB: ensureStringContent(responses.responseB, "No response from Model B's source"),
       });
+      
+      let finalResponseA = ensureStringContent(responses.responseA, "No response from Model A");
+      let finalResponseB = ensureStringContent(responses.responseB, "No response from Model B");
+      let finalEvaluation = ensureStringContent(evaluationResult.evaluation, "No evaluation available");
+
+      if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA]";
+      if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB]";
+      if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[Object detected in finalEvaluation]";
+      if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[Object detected in userPromptString]";
+
 
       const newTurn: ConversationTurn = {
         id: crypto.randomUUID(),
         userPrompt: userPromptString,
-        responseA: ensureStringContent(responses.responseA, "No response from Model A"),
-        responseB: ensureStringContent(responses.responseB, "No response from Model B"),
-        evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
+        responseA: finalResponseA,
+        responseB: finalResponseB,
+        evaluation: finalEvaluation,
         timestamp: new Date(),
       };
       setInteractiveHistory(prev => [newTurn, ...prev]);
@@ -234,7 +262,9 @@ export default function Home() {
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
-      const userPromptString = getCleanedPromptString(item.prompt); 
+      let userPromptString = getCleanedPromptString(item.prompt); 
+      if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[Object in batch userPromptString]";
+
 
       try {
         const fullPromptA = interpolatePrompt(appConfig.promptATemplate, userPromptString);
@@ -253,27 +283,42 @@ export default function Home() {
           responseB: ensureStringContent(responses.responseB, "No response from Model B's source for batch"),
         });
 
+        let finalResponseA = ensureStringContent(responses.responseA, "No response from Model A");
+        let finalResponseB = ensureStringContent(responses.responseB, "No response from Model B");
+        let finalEvaluation = ensureStringContent(evaluationResult.evaluation, "No evaluation available");
+
+        if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA]";
+        if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB]";
+        if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[Object detected in finalEvaluation]";
+        if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[Object detected in userPromptString for batch]";
+
+
         results.push({
           id: String(item.id), 
           prompt: userPromptString, 
-          responseA: ensureStringContent(responses.responseA, "No response from Model A"),
-          responseB: ensureStringContent(responses.responseB, "No response from Model B"),
-          evaluation: ensureStringContent(evaluationResult.evaluation, "No evaluation available"),
+          responseA: finalResponseA,
+          responseB: finalResponseB,
+          evaluation: finalEvaluation,
           timestamp: new Date(),
         });
 
       } catch (error) {
+        let errorString = getSafeToastDescription(error);
+        if (typeof errorString === 'object' && errorString !== null) errorString = "[Object detected in errorString]";
+        if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[Object detected in userPromptString for batch error]";
+
+
         results.push({
           id: String(item.id), 
           prompt: userPromptString, 
-          error: getSafeToastDescription(error), 
+          error: errorString, 
           timestamp: new Date(),
         });
         if (isClient) {
            toast({
             variant: "destructive",
             title: `Error processing item ${getCleanedPromptString(String(item.id))}`,
-            description: getSafeToastDescription(error),
+            description: getSafeToastDescription(error), // Toast description uses its own robust sanitizer
           });
         }
       }
@@ -331,4 +376,6 @@ export default function Home() {
     </div>
   );
 }
+    
+
     
