@@ -39,7 +39,6 @@ function findNestedPromptString(obj: any): string | null {
 
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      // Check if obj[key] is an object and not an array or null
       if (typeof obj[key] === 'object' && obj[key] !== null) {
          const nestedResult = findNestedPromptString(obj[key]);
          if (nestedResult !== null) {
@@ -61,9 +60,9 @@ function getCleanedPromptString(promptInput: any): string {
   if (typeof promptInput === 'number' || typeof promptInput === 'boolean') {
     return String(promptInput);
   }
-  // Explicitly check for { prompt: "string_value" } and only that.
   if (
     typeof promptInput === 'object' &&
+    promptInput !== null &&
     Object.keys(promptInput).length === 1 &&
     Object.prototype.hasOwnProperty.call(promptInput, 'prompt') &&
     typeof promptInput.prompt === 'string'
@@ -89,9 +88,9 @@ function ensureStringContent(content: any, defaultString: string = "No content p
   if (typeof content === 'number' || typeof content === 'boolean') {
     return String(content);
   }
-  // Explicitly check for { prompt: "string_value" } and only that.
   if (
     typeof content === 'object' &&
+    content !== null &&
     Object.keys(content).length === 1 &&
     Object.prototype.hasOwnProperty.call(content, 'prompt') &&
     typeof content.prompt === 'string'
@@ -119,18 +118,15 @@ const getSafeToastDescription = (error: any): string => {
   if (typeof error === 'number' || typeof error === 'boolean') return String(error);
 
   let potentialMessageSource = error;
-  // If 'error' is an Error instance, prioritize its 'message' property
   if (error instanceof Error && error.message) {
     potentialMessageSource = error.message;
   }
   
-  // Now process potentialMessageSource, regardless of whether it came from error or error.message
   if (typeof potentialMessageSource === 'string') {
     return potentialMessageSource || "An unknown error occurred.";
   }
 
   if (typeof potentialMessageSource === 'object' && potentialMessageSource !== null) {
-    // Direct check for {prompt: "string"}
     if (
       Object.keys(potentialMessageSource).length === 1 &&
       Object.prototype.hasOwnProperty.call(potentialMessageSource, 'prompt') &&
@@ -139,15 +135,14 @@ const getSafeToastDescription = (error: any): string => {
       return potentialMessageSource.prompt || "Error: Malformed prompt object in error.";
     }
     
-    // Fallback to findNestedPromptString for more complex objects
     const nestedPrompt = findNestedPromptString(potentialMessageSource);
     if (nestedPrompt !== null) {
       return nestedPrompt || "Error: Empty nested prompt in error object.";
     }
     
-    // Final attempt: JSON.stringify
     try {
       const stringified = JSON.stringify(potentialMessageSource);
+      // Check if it's an empty object stringified, but actually has keys (e.g. non-enumerable)
       if (stringified === '{}' && Object.keys(potentialMessageSource).length > 0) {
         return `[Object Error (keys: ${Object.keys(potentialMessageSource).join(', ')})]`;
       } else if (stringified === '{}' && Object.keys(potentialMessageSource).length === 0) {
@@ -183,7 +178,6 @@ export default function Home() {
   }, []);
 
   const interpolatePrompt = (template: string, userPrompt: string): string => {
-    // Ensure userPrompt is a string for interpolation; getCleanedPromptString should have handled objects.
     const safeUserPrompt = typeof userPrompt === 'string' ? userPrompt : '[Invalid User Prompt for Interpolation]';
     return template.replace(/\{\{prompt\}\}/g, safeUserPrompt);
   };
@@ -204,7 +198,7 @@ export default function Home() {
       });
 
       const evaluationResult = await evaluateResponse({
-        prompt: userPromptString, // Pass the cleaned string
+        prompt: userPromptString,
         responseA: ensureStringContent(responses.responseA, "No response from Model A's source"),
         responseB: ensureStringContent(responses.responseB, "No response from Model B's source"),
       });
@@ -213,7 +207,6 @@ export default function Home() {
       let finalResponseB = ensureStringContent(responses.responseB, "No response from Model B");
       let finalEvaluation = ensureStringContent(evaluationResult.evaluation, "No evaluation available");
 
-      // Final override checks FOR STATE
       if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[Object detected in userPromptString override]";
       if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA override]";
       if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB override]";
@@ -230,7 +223,7 @@ export default function Home() {
       setInteractiveHistory(prev => [newTurn, ...prev]);
 
     } catch (error) {
-      if (isClient) { // Ensure toast is only called client-side
+      if (isClient) {
         toast({
           variant: "destructive",
           title: "Evaluation Error",
@@ -249,8 +242,6 @@ export default function Home() {
 
     for (let i = 0; i < fileContent.length; i++) {
       const item = fileContent[i];
-      // item.prompt from BatchFileItem is expected to be a string per type,
-      // but we still clean it just in case of malformed JSON.
       let userPromptString = getCleanedPromptString(item.prompt); 
 
       try {
@@ -274,14 +265,13 @@ export default function Home() {
         let finalResponseB = ensureStringContent(responses.responseB, "No response from Model B for batch");
         let finalEvaluation = ensureStringContent(evaluationResult.evaluation, "No evaluation available for batch");
         
-        // Final override checks FOR STATE
         if (typeof userPromptString === 'object' && userPromptString !== null) userPromptString = "[Object detected in batch userPromptString override]";
         if (typeof finalResponseA === 'object' && finalResponseA !== null) finalResponseA = "[Object detected in finalResponseA for batch override]";
         if (typeof finalResponseB === 'object' && finalResponseB !== null) finalResponseB = "[Object detected in finalResponseB for batch override]";
         if (typeof finalEvaluation === 'object' && finalEvaluation !== null) finalEvaluation = "[Object detected in finalEvaluation for batch override]";
 
         results.push({
-          id: String(item.id), // Ensure item.id is a string for key and card display
+          id: String(item.id),
           prompt: userPromptString, 
           responseA: finalResponseA,
           responseB: finalResponseB,
@@ -291,29 +281,28 @@ export default function Home() {
 
       } catch (error) {
         let errorString = getSafeToastDescription(error);
-         // Final override check FOR STATE (for error string)
         if (typeof errorString === 'object' && errorString !== null) errorString = "[Object detected in errorString override]";
 
         results.push({
           id: String(item.id), 
-          prompt: userPromptString, // userPromptString should be safe due to earlier cleaning and override
+          prompt: userPromptString,
           error: errorString, 
           timestamp: new Date(),
         });
-        if (isClient) { // Ensure toast is only called client-side
+        if (isClient) {
            toast({
             variant: "destructive",
-            title: `Error processing item ${getCleanedPromptString(String(item.id))}`, // Clean item.id for toast
+            title: `Error processing item ${getCleanedPromptString(String(item.id))}`,
             description: errorString, 
           });
         }
       }
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]); // Update results incrementally for better UX
+      setBatchResults([...results]);
     }
 
     setBatchIsLoading(false);
-     if (isClient) { // Ensure toast is only called client-side
+     if (isClient) {
         toast({
           title: "Batch Processing Complete",
           description: `${results.length} prompts evaluated.`,
@@ -367,3 +356,6 @@ export default function Home() {
     
 
 
+
+
+    
