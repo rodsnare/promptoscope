@@ -81,32 +81,40 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
 }
 
 const getSafeToastDescription = (error: any): string => {
-  if (error instanceof Error) {
-    return error.message || "An error occurred (no message property).";
-  }
-  if (typeof error === 'string') {
-    return error || "An unknown error occurred (empty string).";
-  }
-  if (error === null || error === undefined) {
-    return "An unknown error occurred (null or undefined).";
-  }
-  
+  console.error("Raw error object received by getSafeToastDescription:", error); // Log the raw error
   try {
-    const message = String(error);
-    // Check if String(error) results in something unhelpful like "[object Object]" for complex errors.
-    if (message === '[object Object]') {
-        // If it's a generic object, try to get a more specific known property.
-        if (typeof error.details === 'string' && error.details.trim() !== '') return error.details;
-        if (typeof error.description === 'string' && error.description.trim() !== '') return error.description;
-        // Check for Genkit specific error structure if applicable (e.g. error.isGenkitError / error.data)
-        if (error.isGenkitError && typeof error.data?.message === 'string' && error.data.message.trim() !== '') return error.data.message;
-        return "An object-based error occurred. Check console for details.";
+    if (error && typeof error.message === 'string' && error.message.trim() !== '') {
+      const msg = error.message.substring(0, 500);
+      return msg + (error.message.length > 500 ? "..." : "");
     }
-    return message.trim() === '' ? "An error occurred (empty string message)." : message;
-  } catch (e) {
-    return "An unstringifiable error occurred.";
+    if (typeof error === 'string' && error.trim() !== '') {
+      const msg = error.substring(0, 500);
+      return msg + (error.length > 500 ? "..." : "");
+    }
+    // Check for Genkit specific error structure if the above fails
+    if (error && error.isGenkitError && error.data && typeof error.data.message === 'string' && error.data.message.trim() !== '') {
+        const msg = error.data.message.substring(0,500);
+        return msg + (error.data.message.length > 500 ? "..." : "");
+    }
+    // Attempt a more generic string conversion as a last resort for objects
+    if (typeof error === 'object' && error !== null) {
+        const genericMessage = String(error);
+        if (genericMessage !== '[object Object]') { // Avoid unhelpful generic object string
+            const msg = genericMessage.substring(0,500);
+            return msg + (genericMessage.length > 500 ? "..." : "");
+        }
+    }
+    return "An unexpected error occurred. Please check the browser console for more details.";
+  } catch (e: any) {
+    console.error("Error within getSafeToastDescription itself:", e);
+    let recoveryMessage = "A critical error occurred while trying to display the original error. Check console.";
+    if (e && typeof e.message === 'string') {
+        recoveryMessage += ` (Processing error: ${e.message.substring(0,100)})`;
+    }
+    return recoveryMessage;
   }
 };
+
 
 export default function Home() {
   const [uiMode, setUiMode] = useState<EvaluationMode>('interactive'); // interactive vs batch
