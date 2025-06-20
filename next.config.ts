@@ -27,7 +27,6 @@ const nextConfig: NextConfig = {
     turbo: {
       resolveAlias: {
         // Keeping these as they were added to resolve client-side bundling issues
-        'async_hooks': './src/lib/empty-module.js',
         'dns': './src/lib/empty-module.js',
         // 'fs': './src/lib/empty-module.js', // REMOVED to allow server-side access
         // 'fs/promises': './src/lib/empty-module.js', // REMOVED to allow server-side access
