@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
         'http2': './src/lib/empty-module.js',
         'node:fs': './src/lib/empty-module.js',
         'node:net': './src/lib/empty-module.js',
+        'net': './src/lib/empty-module.js', // Added for 'net'
       },
     },
   },
@@ -53,7 +54,7 @@ const nextConfig: NextConfig = {
         fs: false,
         "fs/promises": false,
         http2: false,
-        net: false, // Added for node:net equivalent in Webpack
+        net: false,
       };
     }
     // Important: return the modified config
