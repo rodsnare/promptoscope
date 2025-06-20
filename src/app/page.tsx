@@ -137,69 +137,75 @@ export default function Home() {
 
   const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
     setIsLoading(true);
-    const cleanedUserPrompt = getCleanedPromptString(userInput);
-    let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserPrompt, 'UserPrompt_Interactive');
+    try {
+      const cleanedUserPrompt = getCleanedPromptString(userInput);
+      let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserPrompt, 'UserPrompt_Interactive');
 
-    let responseA: string | null = null;
-    let responseB: string | null = null;
-    let evaluation: string | null = null;
+      let responseA: string | null = null;
+      let responseB: string | null = null;
+      let evaluation: string | null = null;
 
-    const { runMode, modelAConfig, modelBConfig, evaluatorConfig } = appConfig;
+      const { runMode, modelAConfig, modelBConfig, evaluatorConfig } = appConfig;
 
-    if (runMode === 'a_only' || runMode === 'a_vs_b') {
-      const fullPromptA = interpolateTemplate(modelAConfig.promptTemplate, userPromptForState);
-      const genAResponse = await generateText({
-        prompt: fullPromptA,
-        systemInstruction: modelAConfig.systemInstruction,
-        apiConfig: modelAConfig.apiConfig,
-      });
-      if (genAResponse.error) {
-        if (isClient) toast({ variant: "destructive", title: "Model A Error", description: getSafeToastDescription(genAResponse.error) });
-      } else {
-        responseA = forceStringOrVerySpecificPlaceholder(genAResponse.text, 'ResponseA_Interactive');
+      if (runMode === 'a_only' || runMode === 'a_vs_b') {
+        const fullPromptA = interpolateTemplate(modelAConfig.promptTemplate, userPromptForState);
+        const genAResponse = await generateText({
+          prompt: fullPromptA,
+          systemInstruction: modelAConfig.systemInstruction,
+          apiConfig: modelAConfig.apiConfig,
+        });
+        if (genAResponse.error) {
+          if (isClient) toast({ variant: "destructive", title: "Model A Error", description: getSafeToastDescription(genAResponse.error) });
+        } else {
+          responseA = forceStringOrVerySpecificPlaceholder(genAResponse.text, 'ResponseA_Interactive');
+        }
       }
-    }
 
-    if (runMode === 'b_only' || runMode === 'a_vs_b') {
-      const fullPromptB = interpolateTemplate(modelBConfig.promptTemplate, userPromptForState);
-      const genBResponse = await generateText({
-        prompt: fullPromptB,
-        systemInstruction: modelBConfig.systemInstruction,
-        apiConfig: modelBConfig.apiConfig,
-      });
-      if (genBResponse.error) {
-        if (isClient) toast({ variant: "destructive", title: "Model B Error", description: getSafeToastDescription(genBResponse.error) });
-      } else {
-        responseB = forceStringOrVerySpecificPlaceholder(genBResponse.text, 'ResponseB_Interactive');
+      if (runMode === 'b_only' || runMode === 'a_vs_b') {
+        const fullPromptB = interpolateTemplate(modelBConfig.promptTemplate, userPromptForState);
+        const genBResponse = await generateText({
+          prompt: fullPromptB,
+          systemInstruction: modelBConfig.systemInstruction,
+          apiConfig: modelBConfig.apiConfig,
+        });
+        if (genBResponse.error) {
+          if (isClient) toast({ variant: "destructive", title: "Model B Error", description: getSafeToastDescription(genBResponse.error) });
+        } else {
+          responseB = forceStringOrVerySpecificPlaceholder(genBResponse.text, 'ResponseB_Interactive');
+        }
       }
-    }
-    
-    if (responseA || responseB) {
-       const evalResult = await evaluateResponse({
-          prompt: userPromptForState, 
-          responseA: responseA, 
-          responseB: responseB, 
-          evaluatorPromptTemplate: evaluatorConfig.evaluationPromptTemplate,
-          evaluatorApiConfig: evaluatorConfig.apiConfig,
-      });
-      if (evalResult.error) {
-        if (isClient) toast({ variant: "destructive", title: "Evaluation Error", description: getSafeToastDescription(evalResult.error) });
-      } else {
-        evaluation = forceStringOrVerySpecificPlaceholder(evalResult.evaluation, 'Evaluation_Interactive');
+      
+      if (responseA || responseB) {
+        const evalResult = await evaluateResponse({
+            prompt: userPromptForState, 
+            responseA: responseA, 
+            responseB: responseB, 
+            evaluatorPromptTemplate: evaluatorConfig.evaluationPromptTemplate,
+            evaluatorApiConfig: evaluatorConfig.apiConfig,
+        });
+        if (evalResult.error) {
+          if (isClient) toast({ variant: "destructive", title: "Evaluation Error", description: getSafeToastDescription(evalResult.error) });
+        } else {
+          evaluation = forceStringOrVerySpecificPlaceholder(evalResult.evaluation, 'Evaluation_Interactive');
+        }
       }
+      
+      const newTurn: ConversationTurn = {
+        id: crypto.randomUUID(),
+        userPrompt: userPromptForState,
+        responseA,
+        responseB,
+        evaluation,
+        timestamp: new Date(),
+        runModeUsed: runMode,
+      };
+      setInteractiveHistory(prev => [newTurn, ...prev]);
+    } catch (err) {
+        if (isClient) toast({ variant: "destructive", title: "An Unexpected Error Occurred", description: getSafeToastDescription(err) });
+        console.error("Caught error during interactive submission:", err);
+    } finally {
+        setIsLoading(false);
     }
-    
-    const newTurn: ConversationTurn = {
-      id: crypto.randomUUID(),
-      userPrompt: userPromptForState,
-      responseA,
-      responseB,
-      evaluation,
-      timestamp: new Date(),
-      runModeUsed: runMode,
-    };
-    setInteractiveHistory(prev => [newTurn, ...prev]);
-    setIsLoading(false);
   };
 
   const handleProcessBatch = async (fileContent: BatchFileItem[]) => {
@@ -219,45 +225,51 @@ export default function Home() {
       let responseB: string | null = null;
       let evaluation: string | null = null;
       let processingError: string | undefined = undefined;
-
-      if (runMode === 'a_only' || runMode === 'a_vs_b') {
-        const fullPromptA = interpolateTemplate(modelAConfig.promptTemplate, promptForState);
-        const genAResponse = await generateText({
-          prompt: fullPromptA, systemInstruction: modelAConfig.systemInstruction, apiConfig: modelAConfig.apiConfig,
-        });
-        if (genAResponse.error) {
-          processingError = `Model A Error: ${genAResponse.error}`;
-          if (isClient) toast({ variant: "destructive", title: `Error on item ${itemIdForState}`, description: getSafeToastDescription(genAResponse.error) });
-        } else {
-          responseA = forceStringOrVerySpecificPlaceholder(genAResponse.text, 'ResponseA_BatchItem');
+      
+      try {
+        if (runMode === 'a_only' || runMode === 'a_vs_b') {
+          const fullPromptA = interpolateTemplate(modelAConfig.promptTemplate, promptForState);
+          const genAResponse = await generateText({
+            prompt: fullPromptA, systemInstruction: modelAConfig.systemInstruction, apiConfig: modelAConfig.apiConfig,
+          });
+          if (genAResponse.error) {
+            processingError = `Model A Error: ${genAResponse.error}`;
+            if (isClient) toast({ variant: "destructive", title: `Error on item ${itemIdForState}`, description: getSafeToastDescription(genAResponse.error) });
+          } else {
+            responseA = forceStringOrVerySpecificPlaceholder(genAResponse.text, 'ResponseA_BatchItem');
+          }
         }
-      }
 
-      if (!processingError && (runMode === 'b_only' || runMode === 'a_vs_b')) {
-        const fullPromptB = interpolateTemplate(modelBConfig.promptTemplate, promptForState);
-        const genBResponse = await generateText({
-          prompt: fullPromptB, systemInstruction: modelBConfig.systemInstruction, apiConfig: modelBConfig.apiConfig,
-        });
-        if (genBResponse.error) {
-          processingError = `Model B Error: ${genBResponse.error}`;
-          if (isClient) toast({ variant: "destructive", title: `Error on item ${itemIdForState}`, description: getSafeToastDescription(genBResponse.error) });
-        } else {
-          responseB = forceStringOrVerySpecificPlaceholder(genBResponse.text, 'ResponseB_BatchItem');
+        if (!processingError && (runMode === 'b_only' || runMode === 'a_vs_b')) {
+          const fullPromptB = interpolateTemplate(modelBConfig.promptTemplate, promptForState);
+          const genBResponse = await generateText({
+            prompt: fullPromptB, systemInstruction: modelBConfig.systemInstruction, apiConfig: modelBConfig.apiConfig,
+          });
+          if (genBResponse.error) {
+            processingError = `Model B Error: ${genBResponse.error}`;
+            if (isClient) toast({ variant: "destructive", title: `Error on item ${itemIdForState}`, description: getSafeToastDescription(genBResponse.error) });
+          } else {
+            responseB = forceStringOrVerySpecificPlaceholder(genBResponse.text, 'ResponseB_BatchItem');
+          }
         }
-      }
 
-      if (!processingError && (responseA || responseB)) {
-        const evalResult = await evaluateResponse({
-          prompt: promptForState, responseA, responseB,
-          evaluatorPromptTemplate: evaluatorConfig.evaluationPromptTemplate,
-          evaluatorApiConfig: evaluatorConfig.apiConfig,
-        });
-        if (evalResult.error) {
-          if (isClient) toast({ variant: "destructive", title: `Evaluation error on item ${itemIdForState}`, description: getSafeToastDescription(evalResult.error) });
-          evaluation = `Evaluation Error: ${evalResult.error}`;
-        } else {
-          evaluation = forceStringOrVerySpecificPlaceholder(evalResult.evaluation, 'Evaluation_BatchItem');
+        if (!processingError && (responseA || responseB)) {
+          const evalResult = await evaluateResponse({
+            prompt: promptForState, responseA, responseB,
+            evaluatorPromptTemplate: evaluatorConfig.evaluationPromptTemplate,
+            evaluatorApiConfig: evaluatorConfig.apiConfig,
+          });
+          if (evalResult.error) {
+            if (isClient) toast({ variant: "destructive", title: `Evaluation error on item ${itemIdForState}`, description: getSafeToastDescription(evalResult.error) });
+            evaluation = `Evaluation Error: ${evalResult.error}`;
+          } else {
+            evaluation = forceStringOrVerySpecificPlaceholder(evalResult.evaluation, 'Evaluation_BatchItem');
+          }
         }
+      } catch (err) {
+        processingError = `A fatal error occurred processing this item: ${getSafeToastDescription(err)}`;
+        if (isClient) toast({ variant: "destructive", title: `Fatal error on item ${itemIdForState}`, description: getSafeToastDescription(err) });
+        console.error(`Caught fatal error processing batch item ${itemIdForState}:`, err);
       }
       
       results.push({
