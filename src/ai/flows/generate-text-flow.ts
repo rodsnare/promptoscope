@@ -55,9 +55,11 @@ const generateTextFlow = ai.defineFlow(
       
       return { text: textOutput };
     } catch (e: any) {
-      console.error("Error in generateTextFlow's ai.generate call or subsequent processing:", e); // Log original error server-side
-      // Throw a new, very simple error for the client
-      throw new Error("Text Generation Flow Failed. Please check server logs for details.");
+      // Log the full error server-side for detailed debugging
+      console.error("Error in generateTextFlow's ai.generate call or subsequent processing:", e);
+      // Throw a new, clean error with the specific message to be sent to the client
+      const errorMessage = e?.message ?? 'An unknown error occurred during the text generation flow.';
+      throw new Error(String(errorMessage));
     }
   }
 );

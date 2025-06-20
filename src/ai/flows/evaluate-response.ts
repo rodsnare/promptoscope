@@ -81,9 +81,11 @@ const evaluateResponseFlow = ai.defineFlow(
           throw new Error(detail);
       }
     } catch (e: any) {
-      console.error("Error in evaluateResponseFlow's prompt execution or subsequent processing:", e); // Log original error server-side
-      // Throw a new, very simple error for the client
-      throw new Error("Evaluation Flow Failed. Please check server logs for details.");
+      // Log the full error server-side for detailed debugging
+      console.error("Error in evaluateResponseFlow's prompt execution or subsequent processing:", e); 
+      // Throw a new, clean error with the specific message to be sent to the client
+      const errorMessage = e?.message ?? 'An unknown error occurred during the evaluation flow.';
+      throw new Error(String(errorMessage));
     }
   }
 );
