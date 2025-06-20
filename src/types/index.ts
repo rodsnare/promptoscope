@@ -1,8 +1,8 @@
 
 export interface ApiConfig {
-  temperature: number;
-  topK: number;
-  maxOutputTokens: number;
+  temperature?: number;
+  topK?: number;
+  maxOutputTokens?: number;
 }
 
 export interface ModelProcessingConfig {
