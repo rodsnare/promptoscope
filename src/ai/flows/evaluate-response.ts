@@ -31,9 +31,6 @@ export async function evaluateResponse(input: EvaluateResponseInput): Promise<Ev
   return evaluateResponseFlow(input);
 }
 
-// This prompt is now defined dynamically within the flow based on the input template
-// const staticEvaluatorPrompt = ai.definePrompt({ ... });
-
 const evaluateResponseFlow = ai.defineFlow(
   {
     name: 'evaluateResponseFlow',
@@ -41,24 +38,47 @@ const evaluateResponseFlow = ai.defineFlow(
     outputSchema: EvaluateResponseOutputSchema,
   },
   async (input) => {
-    // Create a dynamic prompt instance for evaluation
     const evaluatorPrompt = ai.definePrompt({
-        name: 'runtimeEvaluateResponsePrompt', // Give it a unique name for potential tracing
-        input: { schema: EvaluateResponseInputSchema }, // It still takes the full input for templating
+        name: 'runtimeEvaluateResponsePrompt',
+        input: { schema: EvaluateResponseInputSchema },
         output: { schema: EvaluateResponseOutputSchema },
-        prompt: input.evaluatorPromptTemplate, // Use the template passed in the input
-        config: input.evaluatorApiConfig, // Use the API config passed in the input
+        prompt: input.evaluatorPromptTemplate,
+        config: input.evaluatorApiConfig,
     });
 
-    // Call the dynamic prompt with the necessary parts of the input for templating
-    const { output } = await evaluatorPrompt({
-        prompt: input.prompt, // userPrompt for the template
+    const evaluatorPromptResult = await evaluatorPrompt({
+        prompt: input.prompt,
         responseA: input.responseA,
         responseB: input.responseB,
-        // These are not directly used by the template but are part of the input schema
-        evaluatorPromptTemplate: input.evaluatorPromptTemplate, 
+        evaluatorPromptTemplate: input.evaluatorPromptTemplate,
         evaluatorApiConfig: input.evaluatorApiConfig,
     });
-    return output!;
+
+    const output = evaluatorPromptResult.output;
+    const rawText = evaluatorPromptResult.text;
+    const usage = evaluatorPromptResult.usage;
+
+    if (output && typeof output.evaluation === 'string') {
+        return output;
+    } else {
+        const message = "Evaluator LLM response issue.";
+        console.error(
+            message,
+            { output, rawText, usage, input }
+        );
+        let detail = "Evaluator LLM response did not conform to the expected schema or was empty.";
+        if (rawText) {
+            detail += ` Raw response snippet: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
+        }
+        if (usage?.finishReason && usage.finishReason !== 'STOP') {
+             detail += ` Finish Reason: ${usage.finishReason}.`;
+             if (usage.finishMessage) {
+                 detail += ` Message: ${usage.finishMessage}.`;
+             }
+        } else if (!output) {
+            detail += " The structured output was not generated."
+        }
+        throw new Error(detail);
+    }
   }
 );

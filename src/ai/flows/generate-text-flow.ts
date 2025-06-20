@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for generating text using a configured model.
@@ -39,9 +40,18 @@ const generateTextFlow = ai.defineFlow(
       systemInstruction: input.systemInstruction,
       config: input.apiConfig,
     });
-    // Ensure response.text is not null/undefined; provide a default if it could be.
-    // Based on Genkit 1.x, response.text is a direct string property.
+    
     const textOutput = response.text === undefined || response.text === null ? "" : response.text;
+
+    if (response.usage?.finishReason && response.usage.finishReason !== 'STOP' && response.usage.finishReason !== 'UNKNOWN') {
+         let detail = `Text generation failed. Finish Reason: ${response.usage.finishReason}.`;
+         if (response.usage.finishMessage) {
+             detail += ` Message: ${response.usage.finishMessage}.`;
+         }
+         console.error(detail, "Input prompt:", input.prompt.substring(0,500), "Full response usage:", response.usage);
+         throw new Error(detail);
+    }
+    
     return { text: textOutput };
   }
 );
