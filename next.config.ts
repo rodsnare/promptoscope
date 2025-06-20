@@ -31,7 +31,8 @@ const nextConfig: NextConfig = {
         'async_hooks': './src/lib/empty-module.js',
         'dns': './src/lib/empty-module.js',
         'fs': './src/lib/empty-module.js',
-        'fs/promises': './src/lib/empty-module.js', // Added fs/promises alias for Turbopack
+        'fs/promises': './src/lib/empty-module.js',
+        'http2': './src/lib/empty-module.js',
       },
     },
   },
@@ -39,7 +40,7 @@ const nextConfig: NextConfig = {
   webpack: (config: WebpackConfiguration, { isServer }) => {
     if (!isServer) {
       // Standard webpack fallback for when not using Turbopack
-      // Prevent 'async_hooks', 'dns', 'fs', and 'fs/promises' from being bundled on the client
+      // Prevent 'async_hooks', 'dns', 'fs', 'fs/promises', and 'http2' from being bundled on the client
       if (!config.resolve) {
         config.resolve = {};
       }
@@ -48,7 +49,8 @@ const nextConfig: NextConfig = {
         async_hooks: false,
         dns: false,
         fs: false,
-        "fs/promises": false, // Added fs/promises fallback for Webpack
+        "fs/promises": false,
+        http2: false,
       };
     }
     // Important: return the modified config
