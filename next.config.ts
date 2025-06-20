@@ -33,6 +33,8 @@ const nextConfig: NextConfig = {
         'fs': './src/lib/empty-module.js',
         'fs/promises': './src/lib/empty-module.js',
         'http2': './src/lib/empty-module.js',
+        'node:fs': './src/lib/empty-module.js',
+        'node:net': './src/lib/empty-module.js',
       },
     },
   },
@@ -40,7 +42,7 @@ const nextConfig: NextConfig = {
   webpack: (config: WebpackConfiguration, { isServer }) => {
     if (!isServer) {
       // Standard webpack fallback for when not using Turbopack
-      // Prevent 'async_hooks', 'dns', 'fs', 'fs/promises', and 'http2' from being bundled on the client
+      // Prevent specified Node.js modules from being bundled on the client
       if (!config.resolve) {
         config.resolve = {};
       }
@@ -51,6 +53,7 @@ const nextConfig: NextConfig = {
         fs: false,
         "fs/promises": false,
         http2: false,
+        net: false, // Added for node:net equivalent in Webpack
       };
     }
     // Important: return the modified config
