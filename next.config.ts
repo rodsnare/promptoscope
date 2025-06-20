@@ -35,7 +35,8 @@ const nextConfig: NextConfig = {
         'http2': './src/lib/empty-module.js',
         'node:fs': './src/lib/empty-module.js',
         'node:net': './src/lib/empty-module.js',
-        'net': './src/lib/empty-module.js', // Added for 'net'
+        'net': './src/lib/empty-module.js',
+        'tls': './src/lib/empty-module.js', // Added for 'tls'
       },
     },
   },
@@ -55,6 +56,7 @@ const nextConfig: NextConfig = {
         "fs/promises": false,
         http2: false,
         net: false,
+        tls: false, // Added for 'tls'
       };
     }
     // Important: return the modified config
