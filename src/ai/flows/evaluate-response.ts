@@ -51,21 +51,22 @@ const evaluateResponseFlow = ai.defineFlow(
           prompt: input.prompt,
           responseA: input.responseA,
           responseB: input.responseB,
-          evaluatorPromptTemplate: input.evaluatorPromptTemplate,
-          evaluatorApiConfig: input.evaluatorApiConfig,
+          evaluatorPromptTemplate: input.evaluatorPromptTemplate, // Pass through, though prompt object uses its own copy
+          evaluatorApiConfig: input.evaluatorApiConfig, // Pass through for prompt object
       });
 
       const output = evaluatorPromptResult.output;
-      const rawText = evaluatorPromptResult.text;
+      const rawText = evaluatorPromptResult.text; // Use .text for raw string
       const usage = evaluatorPromptResult.usage;
 
       if (output && typeof output.evaluation === 'string') {
           return output;
       } else {
+          // This case means the LLM responded, but not in the expected structured format, or evaluation was empty
           const message = "Evaluator LLM response issue.";
           console.error(
               message,
-              { output, rawText, usage, input }
+              { output, rawText, usage, input } // Log for debugging
           );
           let detail = "Evaluator LLM response did not conform to the expected schema or was empty.";
           if (rawText) {
@@ -83,8 +84,15 @@ const evaluateResponseFlow = ai.defineFlow(
       }
     } catch (e: any) {
       console.error("Error in evaluateResponseFlow's prompt execution or subsequent processing:", e);
-      const errorMessage = e && typeof e.message === 'string' ? e.message : "Unknown error in evaluation flow execution.";
-      throw new Error(`Evaluation Flow Failed: ${errorMessage.substring(0, 300)}`);
+      let simpleErrorMessage = "Unknown error in evaluation flow execution.";
+      if (e && typeof e.message === 'string') {
+        simpleErrorMessage = e.message;
+      } else if (typeof e === 'string') {
+        simpleErrorMessage = e;
+      }
+      // Ensure the message is definitely a string
+      simpleErrorMessage = String(simpleErrorMessage);
+      throw new Error(`Evaluation Flow Failed: ${simpleErrorMessage.substring(0, 300)}`);
     }
   }
 );

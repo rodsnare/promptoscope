@@ -42,7 +42,7 @@ const generateTextFlow = ai.defineFlow(
         config: input.apiConfig,
       });
       
-      const textOutput = response.text === undefined || response.text === null ? "" : response.text;
+      const textOutput = (response && typeof response.text === 'string') ? response.text : "";
 
       if (response.usage?.finishReason && response.usage.finishReason !== 'STOP' && response.usage.finishReason !== 'UNKNOWN') {
            let detail = `Text generation failed. Finish Reason: ${response.usage.finishReason}.`;
@@ -56,8 +56,16 @@ const generateTextFlow = ai.defineFlow(
       return { text: textOutput };
     } catch (e: any) {
       console.error("Error in generateTextFlow's ai.generate call or subsequent processing:", e);
-      const errorMessage = e && typeof e.message === 'string' ? e.message : "Unknown error in text generation flow execution.";
-      throw new Error(`Text Generation Flow Failed: ${errorMessage.substring(0, 300)}`);
+      let simpleErrorMessage = "Unknown error in text generation flow execution.";
+      if (e && typeof e.message === 'string') {
+        simpleErrorMessage = e.message;
+      } else if (typeof e === 'string') {
+        simpleErrorMessage = e;
+      }
+      // Ensure the message is definitely a string before creating the new Error
+      simpleErrorMessage = String(simpleErrorMessage); 
+      throw new Error(`Text Generation Flow Failed: ${simpleErrorMessage.substring(0, 300)}`);
     }
   }
 );
+
