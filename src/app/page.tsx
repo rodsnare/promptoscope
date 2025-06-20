@@ -54,24 +54,6 @@ const initialAppConfig: AppConfig = {
   evaluatorConfig: initialEvaluatorConfig,
 };
 
-function findNestedPromptString(obj: any): string | null {
-  if (typeof obj !== 'object' || obj === null) {
-    return null;
-  }
-  if (Object.prototype.hasOwnProperty.call(obj, 'prompt') && typeof obj.prompt === 'string') {
-    return obj.prompt;
-  }
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const nestedResult = findNestedPromptString(obj[key]);
-      if (nestedResult !== null) {
-        return nestedResult;
-      }
-    }
-  }
-  return null;
-}
-
 function getCleanedPromptString(promptInput: any): string {
   if (promptInput === null || promptInput === undefined) return "";
   if (typeof promptInput === 'string') return promptInput;
@@ -99,29 +81,31 @@ function forceStringOrVerySpecificPlaceholder(value: any, fieldName: string): st
 }
 
 const getSafeToastDescription = (error: any): string => {
-  if (error === null || error === undefined) return "An unknown error occurred.";
-  if (typeof error === 'string') return error || "An unknown error occurred.";
-  if (typeof error === 'number' || typeof error === 'boolean') return String(error);
-  let potentialMessageSource = error;
-  if (error instanceof Error && typeof error.message === 'string') {
-    potentialMessageSource = error.message;
+  if (error instanceof Error) {
+    return error.message || "An error occurred (no message property).";
   }
-  if (typeof potentialMessageSource === 'string') return potentialMessageSource || "An unknown error occurred.";
-  if (typeof potentialMessageSource === 'object' && potentialMessageSource !== null) {
-    if (Object.keys(potentialMessageSource).length === 1 && Object.prototype.hasOwnProperty.call(potentialMessageSource, 'prompt') && typeof potentialMessageSource.prompt === 'string') {
-      return potentialMessageSource.prompt || "Error: Malformed prompt object in error.";
+  if (typeof error === 'string') {
+    return error || "An unknown error occurred (empty string).";
+  }
+  if (error === null || error === undefined) {
+    return "An unknown error occurred (null or undefined).";
+  }
+  
+  try {
+    const message = String(error);
+    // Check if String(error) results in something unhelpful like "[object Object]" for complex errors.
+    if (message === '[object Object]') {
+        // If it's a generic object, try to get a more specific known property.
+        if (typeof error.details === 'string' && error.details.trim() !== '') return error.details;
+        if (typeof error.description === 'string' && error.description.trim() !== '') return error.description;
+        // Check for Genkit specific error structure if applicable (e.g. error.isGenkitError / error.data)
+        if (error.isGenkitError && typeof error.data?.message === 'string' && error.data.message.trim() !== '') return error.data.message;
+        return "An object-based error occurred. Check console for details.";
     }
-    const nestedPrompt = findNestedPromptString(potentialMessageSource);
-    if (nestedPrompt !== null && typeof nestedPrompt === 'string') return nestedPrompt || "Error: Empty nested prompt in error object.";
-    try {
-      const stringified = JSON.stringify(potentialMessageSource);
-      if (stringified === '{}' && Object.keys(potentialMessageSource).length > 0) return `[Object Error (keys: ${Object.keys(potentialMessageSource).join(', ')})]`;
-      else if (stringified === '{}' && Object.keys(potentialMessageSource).length === 0) return "[Empty Error Object]";
-      return stringified;
-    } catch { return "[Unstringifiable Error Object]"; }
+    return message.trim() === '' ? "An error occurred (empty string message)." : message;
+  } catch (e) {
+    return "An unstringifiable error occurred.";
   }
-  const finalMessage = String(potentialMessageSource);
-  return finalMessage || "An unknown error occurred.";
 };
 
 export default function Home() {
