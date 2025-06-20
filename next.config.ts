@@ -38,6 +38,7 @@ const nextConfig: NextConfig = {
         'net': './src/lib/empty-module.js',
         'tls': './src/lib/empty-module.js',
         'express': './src/lib/empty-module.js', // Added for 'express'
+        'node:perf_hooks': './src/lib/empty-module.js', // Added for 'node:perf_hooks'
       },
     },
   },
@@ -59,6 +60,7 @@ const nextConfig: NextConfig = {
         net: false,
         tls: false,
         express: false, // Added for 'express'
+        perf_hooks: false, // Added for 'perf_hooks'
       };
     }
     // Important: return the modified config
