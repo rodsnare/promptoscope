@@ -21,6 +21,7 @@ export type GenerateTextInput = z.infer<typeof GenerateTextInputSchema>;
 
 const GenerateTextOutputSchema = z.object({
   text: z.string().describe('The generated text response from the model.'),
+  error: z.string().optional().describe('An error message if the generation failed.'),
 });
 export type GenerateTextOutput = z.infer<typeof GenerateTextOutputSchema>;
 
@@ -50,16 +51,16 @@ const generateTextFlow = ai.defineFlow(
                detail += ` Message: ${response.usage.finishMessage}.`;
            }
            console.error(detail, "Input prompt:", input.prompt.substring(0,500), "Full response usage:", response.usage);
-           throw new Error(detail);
+           return { text: '', error: detail };
       }
       
       return { text: textOutput };
     } catch (e: any) {
       // Log the full error server-side for detailed debugging
       console.error("Error in generateTextFlow's ai.generate call or subsequent processing:", e);
-      // Throw a new, clean error with the specific message to be sent to the client
+      // Return the error message in the output object instead of throwing
       const errorMessage = e?.message ?? 'An unknown error occurred during the text generation flow.';
-      throw new Error(String(errorMessage));
+      return { text: '', error: String(errorMessage) };
     }
   }
 );

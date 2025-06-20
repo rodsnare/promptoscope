@@ -24,6 +24,7 @@ export type EvaluateResponseInput = z.infer<typeof EvaluateResponseInputSchema>;
 
 const EvaluateResponseOutputSchema = z.object({
   evaluation: z.string().describe('The evaluation of the responses from the evaluator LLM.'),
+  error: z.string().optional().describe('An error message if the evaluation failed.'),
 });
 export type EvaluateResponseOutput = z.infer<typeof EvaluateResponseOutputSchema>;
 
@@ -42,7 +43,8 @@ const evaluateResponseFlow = ai.defineFlow(
       const evaluatorPrompt = ai.definePrompt({
           name: 'runtimeEvaluateResponsePrompt',
           input: { schema: EvaluateResponseInputSchema },
-          output: { schema: EvaluateResponseOutputSchema },
+          // This output schema is for the prompt's structured output.
+          output: { schema: z.object({ evaluation: z.string() }) },
           prompt: input.evaluatorPromptTemplate,
           config: input.evaluatorApiConfig,
       });
@@ -60,7 +62,8 @@ const evaluateResponseFlow = ai.defineFlow(
       const usage = evaluatorPromptResult.usage;
 
       if (output && typeof output.evaluation === 'string') {
-          return output;
+          // Success case, conform to flow's output schema.
+          return { evaluation: output.evaluation };
       } else {
           let detail = "Evaluator LLM response did not conform to the expected schema or was empty.";
           if (rawText) {
@@ -78,14 +81,15 @@ const evaluateResponseFlow = ai.defineFlow(
               "Evaluator LLM response issue.",
               { output, rawText, usage, input, detailMessage: detail } 
           );
-          throw new Error(detail);
+          // Return error in the response object
+          return { evaluation: '', error: detail };
       }
     } catch (e: any) {
       // Log the full error server-side for detailed debugging
       console.error("Error in evaluateResponseFlow's prompt execution or subsequent processing:", e); 
-      // Throw a new, clean error with the specific message to be sent to the client
+      // Return the error message in the output object instead of throwing
       const errorMessage = e?.message ?? 'An unknown error occurred during the evaluation flow.';
-      throw new Error(String(errorMessage));
+      return { evaluation: '', error: String(errorMessage) };
     }
   }
 );
