@@ -51,23 +51,17 @@ const evaluateResponseFlow = ai.defineFlow(
           prompt: input.prompt,
           responseA: input.responseA,
           responseB: input.responseB,
-          evaluatorPromptTemplate: input.evaluatorPromptTemplate, // Pass through, though prompt object uses its own copy
-          evaluatorApiConfig: input.evaluatorApiConfig, // Pass through for prompt object
+          evaluatorPromptTemplate: input.evaluatorPromptTemplate, 
+          evaluatorApiConfig: input.evaluatorApiConfig, 
       });
 
       const output = evaluatorPromptResult.output;
-      const rawText = evaluatorPromptResult.text; // Use .text for raw string
+      const rawText = evaluatorPromptResult.text; 
       const usage = evaluatorPromptResult.usage;
 
       if (output && typeof output.evaluation === 'string') {
           return output;
       } else {
-          // This case means the LLM responded, but not in the expected structured format, or evaluation was empty
-          const message = "Evaluator LLM response issue.";
-          console.error(
-              message,
-              { output, rawText, usage, input } // Log for debugging
-          );
           let detail = "Evaluator LLM response did not conform to the expected schema or was empty.";
           if (rawText) {
               detail += ` Raw response snippet: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
@@ -80,19 +74,16 @@ const evaluateResponseFlow = ai.defineFlow(
           } else if (!output) {
               detail += " The structured output was not generated."
           }
+          console.error(
+              "Evaluator LLM response issue.",
+              { output, rawText, usage, input, detailMessage: detail } 
+          );
           throw new Error(detail);
       }
     } catch (e: any) {
-      console.error("Error in evaluateResponseFlow's prompt execution or subsequent processing:", e);
-      let simpleErrorMessage = "Unknown error in evaluation flow execution.";
-      if (e && typeof e.message === 'string') {
-        simpleErrorMessage = e.message;
-      } else if (typeof e === 'string') {
-        simpleErrorMessage = e;
-      }
-      // Ensure the message is definitely a string
-      simpleErrorMessage = String(simpleErrorMessage);
-      throw new Error(`Evaluation Flow Failed: ${simpleErrorMessage.substring(0, 300)}`);
+      console.error("Error in evaluateResponseFlow's prompt execution or subsequent processing:", e); // Log original error server-side
+      // Throw a new, very simple error for the client
+      throw new Error("Evaluation Flow Failed. Please check server logs for details.");
     }
   }
 );
