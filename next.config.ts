@@ -1,7 +1,6 @@
 
 import type {NextConfig} from 'next';
 import type {Configuration as WebpackConfiguration} from 'webpack';
-// path import removed as it wasn't used. Re-add if needed.
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -26,17 +25,9 @@ const nextConfig: NextConfig = {
   experimental: {
     turbo: {
       resolveAlias: {
-        // Keeping these as they were added to resolve client-side bundling issues
-        'dns': './src/lib/empty-module.js',
-        // 'fs': './src/lib/empty-module.js', // REMOVED to allow server-side access
-        // 'fs/promises': './src/lib/empty-module.js', // REMOVED to allow server-side access
-        'http2': './src/lib/empty-module.js',
-        // 'node:fs': './src/lib/empty-module.js', // REMOVED to allow server-side access
-        'node:net': './src/lib/empty-module.js',
-        'net': './src/lib/empty-module.js',
-        'tls': './src/lib/empty-module.js',
-        'express': './src/lib/empty-module.js',
-        'node:perf_hooks': './src/lib/empty-module.js',
+        // The aliases for Node.js built-ins were breaking server-side execution
+        // of Genkit's API calls. They have been removed to allow the server to function.
+        // Client-side polyfills are handled by the webpack config below.
       },
     },
   },

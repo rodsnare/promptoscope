@@ -8,5 +8,5 @@ export const ai = genkit({
     next(),
     googleAI(),
   ],
-  model: 'googleai/gemini-2.0-flash',
+  model: 'gemini-1.5-flash-latest',
 });
