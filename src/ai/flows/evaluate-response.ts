@@ -40,13 +40,18 @@ const evaluateResponseFlow = ai.defineFlow(
   },
   async (input) => {
     try {
+      // Clean the config to remove any null/undefined properties before passing to Genkit
+      const cleanedEvaluatorApiConfig = Object.fromEntries(
+        Object.entries(input.evaluatorApiConfig).filter(([_, v]) => v !== undefined && v !== null)
+      );
+
       const evaluatorPrompt = ai.definePrompt({
           name: 'runtimeEvaluateResponsePrompt',
           input: { schema: EvaluateResponseInputSchema },
           // This output schema is for the prompt's structured output.
           output: { schema: z.object({ evaluation: z.string() }) },
           prompt: input.evaluatorPromptTemplate,
-          config: input.evaluatorApiConfig,
+          config: cleanedEvaluatorApiConfig, // Use the cleaned config
       });
 
       const evaluatorPromptResult = await evaluatorPrompt({
@@ -62,7 +67,6 @@ const evaluateResponseFlow = ai.defineFlow(
       const usage = evaluatorPromptResult.usage;
 
       if (output && typeof output.evaluation === 'string') {
-          // Success case, conform to flow's output schema.
           return { evaluation: output.evaluation };
       } else {
           let detail = "Evaluator LLM response did not conform to the expected schema or was empty.";
@@ -81,13 +85,10 @@ const evaluateResponseFlow = ai.defineFlow(
               "Evaluator LLM response issue.",
               { output, rawText, usage, input, detailMessage: detail } 
           );
-          // Return error in the response object
           return { evaluation: '', error: detail };
       }
     } catch (e: any) {
-      // Log the full error server-side for detailed debugging
       console.error("Error in evaluateResponseFlow's prompt execution or subsequent processing:", e); 
-      // Return the error message in the output object instead of throwing
       const errorMessage = e?.message ?? 'An unknown error occurred during the evaluation flow.';
       return { evaluation: '', error: String(errorMessage) };
     }

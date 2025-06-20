@@ -37,10 +37,15 @@ const generateTextFlow = ai.defineFlow(
   },
   async (input) => {
     try {
+      // Clean the config to remove any null/undefined properties before passing to Genkit
+      const cleanedApiConfig = Object.fromEntries(
+        Object.entries(input.apiConfig).filter(([_, v]) => v !== undefined && v !== null)
+      );
+
       const response = await ai.generate({
         prompt: input.prompt,
         systemInstruction: input.systemInstruction,
-        config: input.apiConfig,
+        config: cleanedApiConfig, // Use the cleaned config
       });
       
       const textOutput = (response && typeof response.text === 'string') ? response.text : "";
@@ -56,9 +61,7 @@ const generateTextFlow = ai.defineFlow(
       
       return { text: textOutput };
     } catch (e: any) {
-      // Log the full error server-side for detailed debugging
       console.error("Error in generateTextFlow's ai.generate call or subsequent processing:", e);
-      // Return the error message in the output object instead of throwing
       const errorMessage = e?.message ?? 'An unknown error occurred during the text generation flow.';
       return { text: '', error: String(errorMessage) };
     }
