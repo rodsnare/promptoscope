@@ -38,47 +38,53 @@ const evaluateResponseFlow = ai.defineFlow(
     outputSchema: EvaluateResponseOutputSchema,
   },
   async (input) => {
-    const evaluatorPrompt = ai.definePrompt({
-        name: 'runtimeEvaluateResponsePrompt',
-        input: { schema: EvaluateResponseInputSchema },
-        output: { schema: EvaluateResponseOutputSchema },
-        prompt: input.evaluatorPromptTemplate,
-        config: input.evaluatorApiConfig,
-    });
+    try {
+      const evaluatorPrompt = ai.definePrompt({
+          name: 'runtimeEvaluateResponsePrompt',
+          input: { schema: EvaluateResponseInputSchema },
+          output: { schema: EvaluateResponseOutputSchema },
+          prompt: input.evaluatorPromptTemplate,
+          config: input.evaluatorApiConfig,
+      });
 
-    const evaluatorPromptResult = await evaluatorPrompt({
-        prompt: input.prompt,
-        responseA: input.responseA,
-        responseB: input.responseB,
-        evaluatorPromptTemplate: input.evaluatorPromptTemplate,
-        evaluatorApiConfig: input.evaluatorApiConfig,
-    });
+      const evaluatorPromptResult = await evaluatorPrompt({
+          prompt: input.prompt,
+          responseA: input.responseA,
+          responseB: input.responseB,
+          evaluatorPromptTemplate: input.evaluatorPromptTemplate,
+          evaluatorApiConfig: input.evaluatorApiConfig,
+      });
 
-    const output = evaluatorPromptResult.output;
-    const rawText = evaluatorPromptResult.text;
-    const usage = evaluatorPromptResult.usage;
+      const output = evaluatorPromptResult.output;
+      const rawText = evaluatorPromptResult.text;
+      const usage = evaluatorPromptResult.usage;
 
-    if (output && typeof output.evaluation === 'string') {
-        return output;
-    } else {
-        const message = "Evaluator LLM response issue.";
-        console.error(
-            message,
-            { output, rawText, usage, input }
-        );
-        let detail = "Evaluator LLM response did not conform to the expected schema or was empty.";
-        if (rawText) {
-            detail += ` Raw response snippet: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
-        }
-        if (usage?.finishReason && usage.finishReason !== 'STOP') {
-             detail += ` Finish Reason: ${usage.finishReason}.`;
-             if (usage.finishMessage) {
-                 detail += ` Message: ${usage.finishMessage}.`;
-             }
-        } else if (!output) {
-            detail += " The structured output was not generated."
-        }
-        throw new Error(detail);
+      if (output && typeof output.evaluation === 'string') {
+          return output;
+      } else {
+          const message = "Evaluator LLM response issue.";
+          console.error(
+              message,
+              { output, rawText, usage, input }
+          );
+          let detail = "Evaluator LLM response did not conform to the expected schema or was empty.";
+          if (rawText) {
+              detail += ` Raw response snippet: ${rawText.substring(0, 200)}${rawText.length > 200 ? '...' : ''}`;
+          }
+          if (usage?.finishReason && usage.finishReason !== 'STOP') {
+               detail += ` Finish Reason: ${usage.finishReason}.`;
+               if (usage.finishMessage) {
+                   detail += ` Message: ${usage.finishMessage}.`;
+               }
+          } else if (!output) {
+              detail += " The structured output was not generated."
+          }
+          throw new Error(detail);
+      }
+    } catch (e: any) {
+      console.error("Error in evaluateResponseFlow's prompt execution or subsequent processing:", e);
+      const errorMessage = e && typeof e.message === 'string' ? e.message : "Unknown error in evaluation flow execution.";
+      throw new Error(`Evaluation Flow Failed: ${errorMessage.substring(0, 300)}`);
     }
   }
 );

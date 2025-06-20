@@ -35,23 +35,29 @@ const generateTextFlow = ai.defineFlow(
     outputSchema: GenerateTextOutputSchema,
   },
   async (input) => {
-    const response = await ai.generate({
-      prompt: input.prompt,
-      systemInstruction: input.systemInstruction,
-      config: input.apiConfig,
-    });
-    
-    const textOutput = response.text === undefined || response.text === null ? "" : response.text;
+    try {
+      const response = await ai.generate({
+        prompt: input.prompt,
+        systemInstruction: input.systemInstruction,
+        config: input.apiConfig,
+      });
+      
+      const textOutput = response.text === undefined || response.text === null ? "" : response.text;
 
-    if (response.usage?.finishReason && response.usage.finishReason !== 'STOP' && response.usage.finishReason !== 'UNKNOWN') {
-         let detail = `Text generation failed. Finish Reason: ${response.usage.finishReason}.`;
-         if (response.usage.finishMessage) {
-             detail += ` Message: ${response.usage.finishMessage}.`;
-         }
-         console.error(detail, "Input prompt:", input.prompt.substring(0,500), "Full response usage:", response.usage);
-         throw new Error(detail);
+      if (response.usage?.finishReason && response.usage.finishReason !== 'STOP' && response.usage.finishReason !== 'UNKNOWN') {
+           let detail = `Text generation failed. Finish Reason: ${response.usage.finishReason}.`;
+           if (response.usage.finishMessage) {
+               detail += ` Message: ${response.usage.finishMessage}.`;
+           }
+           console.error(detail, "Input prompt:", input.prompt.substring(0,500), "Full response usage:", response.usage);
+           throw new Error(detail);
+      }
+      
+      return { text: textOutput };
+    } catch (e: any) {
+      console.error("Error in generateTextFlow's ai.generate call or subsequent processing:", e);
+      const errorMessage = e && typeof e.message === 'string' ? e.message : "Unknown error in text generation flow execution.";
+      throw new Error(`Text Generation Flow Failed: ${errorMessage.substring(0, 300)}`);
     }
-    
-    return { text: textOutput };
   }
 );
