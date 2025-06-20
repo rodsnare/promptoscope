@@ -1,4 +1,5 @@
 
+import 'dotenv/config'; // Make sure environment variables are loaded
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 import next from '@genkit-ai/next';
