@@ -9,9 +9,10 @@ import InteractiveMode from '@/components/interactive/InteractiveMode';
 import BatchMode from '@/components/batch/BatchMode';
 import DownloadPanel from '@/components/DownloadPanel';
 import { useToast } from "@/hooks/use-toast";
-import { compareResponses } from '@/ai/flows/compare-responses';
+// import { compareResponses } from '@/ai/flows/compare-responses'; // Deprecated
 import { evaluateResponse } from '@/ai/flows/evaluate-response';
-import { ai } from '@/ai/genkit'; // For direct model calls
+import { generateText } from '@/ai/flows/generate-text-flow'; // Import the new flow
+// import { ai } from '@/ai/genkit'; // No longer needed for direct model calls from client
 import type { AppConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, BatchFileItem, EvaluationRunMode, ApiConfig, ModelProcessingConfig, EvaluatorConfig } from '@/types';
 import { Sheet } from '@/components/ui/sheet';
 
@@ -156,31 +157,29 @@ export default function Home() {
 
       if (runMode === 'a_only' || runMode === 'a_vs_b') {
         const fullPromptA = interpolateTemplate(modelAConfig.promptTemplate, userPromptForState);
-        const genAResponse = await ai.generate({
+        const genAResponse = await generateText({
           prompt: fullPromptA,
           systemInstruction: modelAConfig.systemInstruction,
-          config: modelAConfig.apiConfig,
+          apiConfig: modelAConfig.apiConfig,
         });
         responseA = forceStringOrVerySpecificPlaceholder(genAResponse.text, 'ResponseA_Interactive');
       }
 
       if (runMode === 'b_only' || runMode === 'a_vs_b') {
         const fullPromptB = interpolateTemplate(modelBConfig.promptTemplate, userPromptForState);
-        const genBResponse = await ai.generate({
+        const genBResponse = await generateText({
           prompt: fullPromptB,
           systemInstruction: modelBConfig.systemInstruction,
-          config: modelBConfig.apiConfig,
+          apiConfig: modelBConfig.apiConfig,
         });
         responseB = forceStringOrVerySpecificPlaceholder(genBResponse.text, 'ResponseB_Interactive');
       }
       
-      // If runMode was 'a_vs_b', then compareResponses was implicitly done by generating A and B above.
-      // Now, proceed to evaluation for all modes that produced at least one response.
       if (responseA !== null || responseB !== null) {
          const evalResult = await evaluateResponse({
-            prompt: userPromptForState, // The original user prompt
-            responseA: responseA, // Will be null if b_only
-            responseB: responseB, // Will be null if a_only
+            prompt: userPromptForState, 
+            responseA: responseA, 
+            responseB: responseB, 
             evaluatorPromptTemplate: evaluatorConfig.evaluationPromptTemplate,
             evaluatorApiConfig: evaluatorConfig.apiConfig,
         });
@@ -226,20 +225,20 @@ export default function Home() {
       try {
         if (runMode === 'a_only' || runMode === 'a_vs_b') {
           const fullPromptA = interpolateTemplate(modelAConfig.promptTemplate, promptForState);
-          const genAResponse = await ai.generate({
+          const genAResponse = await generateText({
             prompt: fullPromptA,
             systemInstruction: modelAConfig.systemInstruction,
-            config: modelAConfig.apiConfig,
+            apiConfig: modelAConfig.apiConfig,
           });
           responseA = forceStringOrVerySpecificPlaceholder(genAResponse.text, 'ResponseA_BatchItem');
         }
 
         if (runMode === 'b_only' || runMode === 'a_vs_b') {
           const fullPromptB = interpolateTemplate(modelBConfig.promptTemplate, promptForState);
-          const genBResponse = await ai.generate({
+          const genBResponse = await generateText({
             prompt: fullPromptB,
             systemInstruction: modelBConfig.systemInstruction,
-            config: modelBConfig.apiConfig,
+            apiConfig: modelBConfig.apiConfig,
           });
           responseB = forceStringOrVerySpecificPlaceholder(genBResponse.text, 'ResponseB_BatchItem');
         }
@@ -285,7 +284,7 @@ export default function Home() {
       <Sheet open={isConfigPanelOpen} onOpenChange={setIsConfigPanelOpen}>
         <AppHeader />
         <ConfigurationPanel
-          config={appConfig} // Pass the full, structured config
+          config={appConfig} 
           onConfigChange={setAppConfig}
         />
       </Sheet>
