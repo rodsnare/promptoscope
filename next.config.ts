@@ -1,7 +1,7 @@
 
 import type {NextConfig} from 'next';
 import type {Configuration as WebpackConfiguration} from 'webpack';
-import path from 'path'; // Keep path import for now
+// path import removed as it wasn't used. Re-add if needed.
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -23,22 +23,21 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ['https://*.cloudworkstations.dev'],
 
-  // Add Turbopack specific alias
   experimental: {
     turbo: {
       resolveAlias: {
-        // Use a path relative to the project root for Turbopack
+        // Keeping these as they were added to resolve client-side bundling issues
         'async_hooks': './src/lib/empty-module.js',
         'dns': './src/lib/empty-module.js',
-        'fs': './src/lib/empty-module.js',
-        'fs/promises': './src/lib/empty-module.js',
+        // 'fs': './src/lib/empty-module.js', // REMOVED to allow server-side access
+        // 'fs/promises': './src/lib/empty-module.js', // REMOVED to allow server-side access
         'http2': './src/lib/empty-module.js',
-        'node:fs': './src/lib/empty-module.js',
+        // 'node:fs': './src/lib/empty-module.js', // REMOVED to allow server-side access
         'node:net': './src/lib/empty-module.js',
         'net': './src/lib/empty-module.js',
         'tls': './src/lib/empty-module.js',
-        'express': './src/lib/empty-module.js', // Added for 'express'
-        'node:perf_hooks': './src/lib/empty-module.js', // Added for 'node:perf_hooks'
+        'express': './src/lib/empty-module.js',
+        'node:perf_hooks': './src/lib/empty-module.js',
       },
     },
   },
@@ -54,13 +53,13 @@ const nextConfig: NextConfig = {
         ...config.resolve.fallback,
         async_hooks: false,
         dns: false,
-        fs: false,
-        "fs/promises": false,
+        fs: false, // This ensures 'fs' is not bundled on the client for Webpack
+        "fs/promises": false, // This ensures 'fs/promises' is not bundled on the client for Webpack
         http2: false,
         net: false,
         tls: false,
-        express: false, // Added for 'express'
-        perf_hooks: false, // Added for 'perf_hooks'
+        express: false,
+        perf_hooks: false,
       };
     }
     // Important: return the modified config
