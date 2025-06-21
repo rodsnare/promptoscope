@@ -46,12 +46,17 @@ const generateTextFlow = ai.defineFlow(
         Object.entries(restOfConfig).filter(([_, v]) => v !== undefined && v !== null)
       );
 
-      const response = await ai.generate({
-        model: prefixedModel, // Use prefixed model
-        prompt: input.prompt,
-        systemInstruction: input.systemInstruction,
-        config: cleanedApiConfig, // Use the cleaned config
+      // Define a prompt dynamically. This pattern is more reliable for applying system instructions.
+      const textGenPrompt = ai.definePrompt({
+        name: 'runtimeTextGenerationPrompt',
+        system: input.systemInstruction, // Use the dedicated 'system' parameter.
+        prompt: input.prompt, // The prompt is already finalized, no templating needed here.
+        model: prefixedModel,
+        config: cleanedApiConfig,
       });
+
+      // Call the newly defined prompt.
+      const response = await textGenPrompt();
       
       const textOutput = (response && typeof response.text === 'string') ? response.text : "";
 
@@ -66,7 +71,7 @@ const generateTextFlow = ai.defineFlow(
       
       return { text: textOutput };
     } catch (e: any) {
-      console.error("Error in generateTextFlow's ai.generate call or subsequent processing:", e);
+      console.error("Error in generateTextFlow's execution:", e);
       const errorMessage = e?.message ?? 'An unknown error occurred during the text generation flow.';
       return { text: '', error: String(errorMessage) };
     }
