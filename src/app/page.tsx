@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -280,9 +281,9 @@ export default function Home() {
       });
 
       setBatchProgress(((i + 1) / fileContent.length) * 100);
-      setBatchResults([...results]);
     }
 
+    setBatchResults(results);
     setBatchIsLoading(false);
     if (isClient) {
       toast({ title: "Batch Processing Complete", description: `${results.length} prompts processed.` });
