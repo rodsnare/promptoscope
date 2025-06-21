@@ -16,7 +16,7 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ['@genkit-ai/core', '@genkit-ai/next', '@genkit-ai/googleai', 'genkit'],
+  transpilePackages: ['@genkit-ai/core', '@genkit-ai/googleai', 'genkit'],
 };
 
 module.exports = nextConfig;

@@ -136,7 +136,7 @@ export default function Home() {
     setIsClient(true);
     // Load config from localStorage on initial client mount
     try {
-      const savedConfigJSON = localStorage.getItem('promptEvalProConfig');
+      const savedConfigJSON = localStorage.getItem('promotoscopeConfig');
       if (savedConfigJSON) {
         const savedConfig = JSON.parse(savedConfigJSON);
         setAppConfig(savedConfig);
@@ -151,7 +151,7 @@ export default function Home() {
     // Only run on client and after initial mount
     if (isClient) {
       try {
-        localStorage.setItem('promptEvalProConfig', JSON.stringify(appConfig));
+        localStorage.setItem('promotoscopeConfig', JSON.stringify(appConfig));
       } catch (error) {
         console.error('Error saving config to localStorage:', error);
       }

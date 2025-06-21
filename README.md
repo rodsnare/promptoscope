@@ -1,4 +1,4 @@
-# Firebase Studio
+# PromtoScope
 
 This is a NextJS starter in Firebase Studio.
 

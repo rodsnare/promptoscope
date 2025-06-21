@@ -4,8 +4,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'PromptEval Pro',
-  description: 'A/B Prompt Evaluation Web App',
+  title: 'PromtoScope',
+  description: 'Evaluate and Compare LLM Prompts',
 };
 
 export default function RootLayout({
