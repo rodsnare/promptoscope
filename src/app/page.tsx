@@ -17,7 +17,7 @@ import type { AppConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, B
 import { Sheet } from '@/components/ui/sheet';
 
 const defaultApiConfig: ApiConfig = {
-  model: 'gemini-2.0-flash',
+  model: 'googleai/gemini-1.5-flash-latest',
   temperature: 0.7,
   topK: 40,
   maxOutputTokens: 1024,
