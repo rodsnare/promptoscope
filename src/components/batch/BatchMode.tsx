@@ -16,9 +16,10 @@ interface BatchModeProps {
   isLoading: boolean;
   progress: number;
   onCancel: () => void;
+  isCancelling: boolean;
 }
 
-const BatchMode: React.FC<BatchModeProps> = ({ batchResults, onProcessBatch, isLoading, progress, onCancel }) => {
+const BatchMode: React.FC<BatchModeProps> = ({ batchResults, onProcessBatch, isLoading, progress, onCancel, isCancelling }) => {
   const [stagedFileContent, setStagedFileContent] = useState<BatchFileItem[] | null>(null);
 
   const handleFileUploaded = (content: BatchFileItem[]) => {
@@ -46,9 +47,9 @@ const BatchMode: React.FC<BatchModeProps> = ({ batchResults, onProcessBatch, isL
         <div className="flex flex-col items-center space-y-2">
           <p className="text-sm text-muted-foreground text-center">Processing batch... {Math.round(progress)}%</p>
           <Progress value={progress} className="w-full max-w-md" />
-          <Button onClick={onCancel} variant="destructive" className="mt-4">
+          <Button onClick={onCancel} variant="outline" className="mt-4" disabled={isCancelling}>
               <Ban className="mr-2 h-4 w-4" />
-              Cancel Processing
+              {isCancelling ? 'Cancelling...' : 'Cancel Processing'}
           </Button>
         </div>
       )}

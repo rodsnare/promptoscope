@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AppHeader from '@/components/AppHeader';
 import ConfigurationPanel from '@/components/ConfigurationPanel';
 import ModeSwitcher from '@/components/ModeSwitcher'; // This is for Interactive vs Batch UI
@@ -125,6 +125,7 @@ export default function Home() {
   const [batchIsLoading, setBatchIsLoading] = useState(false);
   const [batchProgress, setBatchProgress] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
+  const cancelBatchRef = useRef(false);
 
   const [interactiveHistory, setInteractiveHistory] = useState<ConversationTurn[]>([]);
   const [batchResults, setBatchResults] = useState<ProcessedBatchItem[]>([]);
@@ -212,6 +213,7 @@ export default function Home() {
   
   const handleCancelBatch = () => {
     setIsCancelling(true);
+    cancelBatchRef.current = true;
     if (isClient) {
       toast({
         title: "Cancellation Requested",
@@ -224,13 +226,15 @@ export default function Home() {
     setBatchIsLoading(true);
     setBatchResults([]);
     setBatchProgress(0);
-    setIsCancelling(false); // Reset at start
+    setIsCancelling(false);
+    cancelBatchRef.current = false;
+
     const results: ProcessedBatchItem[] = [];
     const { runMode, modelAConfig, modelBConfig, evaluatorConfig } = appConfig;
     let wasCancelled = false;
 
     for (let i = 0; i < fileContent.length; i++) {
-      if (isCancelling) {
+      if (cancelBatchRef.current) {
         wasCancelled = true;
         break;
       }
@@ -303,7 +307,7 @@ export default function Home() {
 
     setBatchResults(results);
     setBatchIsLoading(false);
-    setIsCancelling(false); // Reset for next time
+    setIsCancelling(false);
 
     if (isClient) {
       if (wasCancelled) {
@@ -340,6 +344,7 @@ export default function Home() {
             isLoading={batchIsLoading}
             progress={batchProgress}
             onCancel={handleCancelBatch}
+            isCancelling={isCancelling}
           />
         )}
       </main>
