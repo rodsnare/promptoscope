@@ -124,6 +124,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [batchIsLoading, setBatchIsLoading] = useState(false);
   const [batchProgress, setBatchProgress] = useState(0);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const [interactiveHistory, setInteractiveHistory] = useState<ConversationTurn[]>([]);
   const [batchResults, setBatchResults] = useState<ProcessedBatchItem[]>([]);
@@ -208,15 +209,32 @@ export default function Home() {
         setIsLoading(false);
     }
   };
+  
+  const handleCancelBatch = () => {
+    setIsCancelling(true);
+    if (isClient) {
+      toast({
+        title: "Cancellation Requested",
+        description: "The batch process will stop after the current item finishes.",
+      });
+    }
+  };
 
   const handleProcessBatch = async (fileContent: BatchFileItem[]) => {
     setBatchIsLoading(true);
     setBatchResults([]);
     setBatchProgress(0);
+    setIsCancelling(false); // Reset at start
     const results: ProcessedBatchItem[] = [];
     const { runMode, modelAConfig, modelBConfig, evaluatorConfig } = appConfig;
+    let wasCancelled = false;
 
     for (let i = 0; i < fileContent.length; i++) {
+      if (isCancelling) {
+        wasCancelled = true;
+        break;
+      }
+
       const item = fileContent[i];
       let cleanedItemPrompt = getCleanedPromptString(item.prompt);
       let promptForState = forceStringOrVerySpecificPlaceholder(cleanedItemPrompt, 'Prompt_BatchItem');
@@ -285,8 +303,14 @@ export default function Home() {
 
     setBatchResults(results);
     setBatchIsLoading(false);
+    setIsCancelling(false); // Reset for next time
+
     if (isClient) {
-      toast({ title: "Batch Processing Complete", description: `${results.length} prompts processed.` });
+      if (wasCancelled) {
+        toast({ title: "Batch Processing Cancelled", description: `${results.length} prompts were processed before stopping.` });
+      } else {
+        toast({ title: "Batch Processing Complete", description: `${results.length} prompts processed.` });
+      }
     }
   };
 
@@ -315,6 +339,7 @@ export default function Home() {
             onProcessBatch={handleProcessBatch}
             isLoading={batchIsLoading}
             progress={batchProgress}
+            onCancel={handleCancelBatch}
           />
         )}
       </main>

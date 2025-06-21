@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -7,16 +8,17 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import type { ProcessedBatchItem, BatchFileItem } from '@/types';
-import { PlayCircle, ListChecks, ServerCrash } from 'lucide-react';
+import { PlayCircle, ListChecks, ServerCrash, Ban } from 'lucide-react';
 
 interface BatchModeProps {
   batchResults: ProcessedBatchItem[];
   onProcessBatch: (fileContent: BatchFileItem[]) => Promise<void>;
   isLoading: boolean;
   progress: number;
+  onCancel: () => void;
 }
 
-const BatchMode: React.FC<BatchModeProps> = ({ batchResults, onProcessBatch, isLoading, progress }) => {
+const BatchMode: React.FC<BatchModeProps> = ({ batchResults, onProcessBatch, isLoading, progress, onCancel }) => {
   const [stagedFileContent, setStagedFileContent] = useState<BatchFileItem[] | null>(null);
 
   const handleFileUploaded = (content: BatchFileItem[]) => {
@@ -41,13 +43,17 @@ const BatchMode: React.FC<BatchModeProps> = ({ batchResults, onProcessBatch, isL
       )}
 
       {isLoading && (
-        <div className="space-y-2">
+        <div className="flex flex-col items-center space-y-2">
           <p className="text-sm text-muted-foreground text-center">Processing batch... {Math.round(progress)}%</p>
-          <Progress value={progress} className="w-full" />
+          <Progress value={progress} className="w-full max-w-md" />
+          <Button onClick={onCancel} variant="destructive" className="mt-4">
+              <Ban className="mr-2 h-4 w-4" />
+              Cancel Processing
+          </Button>
         </div>
       )}
 
-      {batchResults.length > 0 && (
+      {batchResults.length > 0 && !isLoading && (
          <h2 className="text-2xl font-semibold font-headline text-primary pt-4">Batch Results</h2>
       )}
 
