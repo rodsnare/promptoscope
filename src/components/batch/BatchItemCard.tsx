@@ -127,4 +127,3 @@ const BatchItemCard: React.FC<BatchItemCardProps> = ({ item }) => {
 };
 
 export default BatchItemCard;
-
