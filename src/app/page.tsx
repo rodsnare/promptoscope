@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -36,6 +37,13 @@ const initialModelBConfig: ModelProcessingConfig = {
 
 const initialEvaluatorConfig: EvaluatorConfig = {
   evaluationPromptTemplate: `You are an expert evaluator of LLM responses.
+Your task is to assess the provided AI-generated response based on the following criteria:
+1. Accuracy: Is the information correct and factual?
+2. Clarity: Is the response easy to understand?
+3. Conciseness: Is the response to the point, without unnecessary fluff?
+4. Helpfulness: Does the response adequately address the original query implied by the text?
+Provide a brief, numbered rating for each criterion from 1 to 10, where 10 is a perfect answer and 1 is completely unacceptable, and a brief reason for that rating with an evaluation summary
+Please score both responses not just the best response. And only format the rating in the following format  **Critiera:(Rating)**
 Original User Prompt: {{{prompt}}}
 Response A: {{{responseA}}}
 {{#if responseB}}
