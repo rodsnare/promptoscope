@@ -64,12 +64,6 @@ const initialAppConfig: AppConfig = {
 
 function getCleanedPromptString(promptInput: any): string {
   if (promptInput === null || promptInput === undefined) return "";
-  if (typeof promptInput === 'string') return promptInput;
-  if (typeof promptInput === 'number' || typeof promptInput === 'boolean') return String(promptInput);
-  if (typeof promptInput === 'object' && Object.prototype.hasOwnProperty.call(promptInput, 'prompt') && typeof promptInput.prompt === 'string' && Object.keys(promptInput).length === 1) {
-    return promptInput.prompt || "";
-  }
-  if (typeof promptInput === 'object' && promptInput !== null) return "[Invalid Prompt Structure]";
   return String(promptInput);
 }
 
@@ -176,11 +170,10 @@ export default function Home() {
     return template.replace(/\{\{prompt\}\}/g, userPrompt);
   };
 
-  const handleInteractiveSubmit = async (userInput: string | { prompt: string }) => {
+  const handleInteractiveSubmit = async (userInput: string) => {
     setIsLoading(true);
     try {
-      const cleanedUserPrompt = getCleanedPromptString(userInput);
-      let userPromptForState = forceStringOrVerySpecificPlaceholder(cleanedUserPrompt, 'UserPrompt_Interactive');
+      const userPromptForState = forceStringOrVerySpecificPlaceholder(userInput, 'UserPrompt_Interactive');
 
       let responseA: string | null = null;
       let responseB: string | null = null;

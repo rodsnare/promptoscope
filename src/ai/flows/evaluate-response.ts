@@ -22,6 +22,13 @@ const EvaluateResponseInputSchema = z.object({
 });
 export type EvaluateResponseInput = z.infer<typeof EvaluateResponseInputSchema>;
 
+// This schema defines the specific data structure for the evaluation prompt template.
+const PromptInputDataSchema = z.object({
+  prompt: z.string().describe('The original user prompt that was submitted to the models.'),
+  responseA: z.string().nullable().describe('The response from model A. Can be null if not generated.'),
+  responseB: z.string().nullable().describe('The response from model B. Can be null if not generated.'),
+});
+
 const EvaluateResponseOutputSchema = z.object({
   evaluation: z.string().describe('The evaluation of the responses from the evaluator LLM.'),
   error: z.string().optional().describe('An error message if the evaluation failed.'),
@@ -51,7 +58,8 @@ const evaluateResponseFlow = ai.defineFlow(
 
       const evaluatorPrompt = ai.definePrompt({
           name: 'runtimeEvaluateResponsePrompt',
-          input: { schema: EvaluateResponseInputSchema },
+          // Use the new, more specific schema for the prompt's input.
+          input: { schema: PromptInputDataSchema },
           // This output schema is for the prompt's structured output.
           output: { schema: z.object({ evaluation: z.string() }) },
           prompt: input.evaluatorPromptTemplate,
@@ -59,12 +67,11 @@ const evaluateResponseFlow = ai.defineFlow(
           config: cleanedEvaluatorApiConfig, // Use the cleaned config
       });
 
+      // Pass only the data that the prompt template requires.
       const evaluatorPromptResult = await evaluatorPrompt({
           prompt: input.prompt,
           responseA: input.responseA,
           responseB: input.responseB,
-          evaluatorPromptTemplate: input.evaluatorPromptTemplate, 
-          evaluatorApiConfig: input.evaluatorApiConfig, 
       });
 
       const output = evaluatorPromptResult.output;
