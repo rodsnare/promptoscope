@@ -16,7 +16,7 @@ import type { AppConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, B
 import { Sheet } from '@/components/ui/sheet';
 
 const defaultApiConfig: ApiConfig = {
-  model: 'googleai/gemini-1.5-flash-latest',
+  model: 'gemini-1.5-flash-latest',
   temperature: 0.7,
   topK: 40,
   maxOutputTokens: 1024,
@@ -131,7 +131,33 @@ export default function Home() {
 
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
-  useEffect(() => { setIsClient(true); }, []);
+
+  useEffect(() => {
+    setIsClient(true);
+    // Load config from localStorage on initial client mount
+    try {
+      const savedConfigJSON = localStorage.getItem('promptEvalProConfig');
+      if (savedConfigJSON) {
+        const savedConfig = JSON.parse(savedConfigJSON);
+        setAppConfig(savedConfig);
+      }
+    } catch (error) {
+      console.error('Error loading config from localStorage:', error);
+    }
+  }, []); // Empty array ensures this runs only once on mount
+
+  // Save config to localStorage whenever it changes
+  useEffect(() => {
+    // Only run on client and after initial mount
+    if (isClient) {
+      try {
+        localStorage.setItem('promptEvalProConfig', JSON.stringify(appConfig));
+      } catch (error) {
+        console.error('Error saving config to localStorage:', error);
+      }
+    }
+  }, [appConfig, isClient]);
+
 
   const handleNewBatchFile = () => {
     setBatchResults([]);

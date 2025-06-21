@@ -41,6 +41,9 @@ const evaluateResponseFlow = ai.defineFlow(
   async (input) => {
     try {
       const { model, ...restOfConfig } = input.evaluatorApiConfig;
+      // Prepend 'googleai/' if it's not already there
+      const prefixedModel = model && !model.startsWith('googleai/') ? `googleai/${model}` : model;
+
       // Clean the config to remove any null/undefined properties before passing to Genkit
       const cleanedEvaluatorApiConfig = Object.fromEntries(
         Object.entries(restOfConfig).filter(([_, v]) => v !== undefined && v !== null)
@@ -52,7 +55,7 @@ const evaluateResponseFlow = ai.defineFlow(
           // This output schema is for the prompt's structured output.
           output: { schema: z.object({ evaluation: z.string() }) },
           prompt: input.evaluatorPromptTemplate,
-          model: model, // Use model from config
+          model: prefixedModel, // Use prefixed model from config
           config: cleanedEvaluatorApiConfig, // Use the cleaned config
       });
 
