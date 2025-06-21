@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -134,6 +133,11 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => { setIsClient(true); }, []);
 
+  const handleNewBatchFile = () => {
+    setBatchResults([]);
+    setBatchProgress(0);
+  };
+
   const interpolateTemplate = (template: string, userPrompt: string): string => {
     return template.replace(/\{\{prompt\}\}/g, userPrompt);
   };
@@ -224,7 +228,7 @@ export default function Home() {
 
   const handleProcessBatch = async (fileContent: BatchFileItem[]) => {
     setBatchIsLoading(true);
-    setBatchResults([]);
+    // setBatchResults([]); // No longer reset here, results are accumulated first.
     setBatchProgress(0);
     setIsCancelling(false);
     cancelBatchRef.current = false;
@@ -345,6 +349,7 @@ export default function Home() {
             progress={batchProgress}
             onCancel={handleCancelBatch}
             isCancelling={isCancelling}
+            onNewBatchFile={handleNewBatchFile}
           />
         )}
       </main>

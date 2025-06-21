@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -17,12 +16,14 @@ interface BatchModeProps {
   progress: number;
   onCancel: () => void;
   isCancelling: boolean;
+  onNewBatchFile: () => void;
 }
 
-const BatchMode: React.FC<BatchModeProps> = ({ batchResults, onProcessBatch, isLoading, progress, onCancel, isCancelling }) => {
+const BatchMode: React.FC<BatchModeProps> = ({ batchResults, onProcessBatch, isLoading, progress, onCancel, isCancelling, onNewBatchFile }) => {
   const [stagedFileContent, setStagedFileContent] = useState<BatchFileItem[] | null>(null);
 
   const handleFileUploaded = (content: BatchFileItem[]) => {
+    onNewBatchFile();
     setStagedFileContent(content);
   };
 
