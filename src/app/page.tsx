@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -293,7 +292,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Sheet open={isConfigPanelOpen} onOpenChange={setIsConfigPanelOpen}>
-        <AppHeader />
+        <AppHeader runMode={appConfig.runMode} />
         <ConfigurationPanel
           config={appConfig} 
           onConfigChange={setAppConfig}
@@ -319,14 +318,12 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="container mx-auto w-full max-w-7xl py-2 sticky bottom-0 bg-background/80 backdrop-blur-sm border-t">
-         <DownloadPanel
-            mode={uiMode}
-            interactiveHistory={interactiveHistory}
-            batchResults={batchResults}
-            isDisabled={isLoading || batchIsLoading}
-          />
-      </footer>
+      <DownloadPanel
+        mode={uiMode}
+        interactiveHistory={interactiveHistory}
+        batchResults={batchResults}
+        isDisabled={isLoading || batchIsLoading}
+      />
     </div>
   );
 }
