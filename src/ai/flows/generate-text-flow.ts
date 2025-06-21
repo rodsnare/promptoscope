@@ -37,12 +37,14 @@ const generateTextFlow = ai.defineFlow(
   },
   async (input) => {
     try {
+      const { model, ...restOfConfig } = input.apiConfig;
       // Clean the config to remove any null/undefined properties before passing to Genkit
       const cleanedApiConfig = Object.fromEntries(
-        Object.entries(input.apiConfig).filter(([_, v]) => v !== undefined && v !== null)
+        Object.entries(restOfConfig).filter(([_, v]) => v !== undefined && v !== null)
       );
 
       const response = await ai.generate({
+        model: model, // Use model from config
         prompt: input.prompt,
         systemInstruction: input.systemInstruction,
         config: cleanedApiConfig, // Use the cleaned config

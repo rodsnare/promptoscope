@@ -1,5 +1,6 @@
 
 export interface ApiConfig {
+  model?: string;
   temperature?: number;
   topK?: number;
   maxOutputTokens?: number;

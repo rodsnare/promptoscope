@@ -92,6 +92,18 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
     <div className="space-y-3 mt-3 pt-3 border-t">
       <h4 className="text-sm font-medium">API Parameters</h4>
       <div>
+        <Label htmlFor={`${baseName}.model`}>Model Name</Label>
+        <Input
+          id={`${baseName}.model`}
+          name={`${baseName}.model`}
+          type="text"
+          value={apiConf.model ?? ''}
+          onChange={handleInputChange}
+          placeholder="e.g., gemini-1.5-flash-latest"
+          className="mt-1 font-code"
+        />
+      </div>
+      <div>
         <Label htmlFor={`${baseName}.temperature`}>Temperature</Label>
         <Input
           id={`${baseName}.temperature`}
