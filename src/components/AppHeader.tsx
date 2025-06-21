@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Settings2 } from 'lucide-react';
@@ -19,11 +20,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({ runMode }) => {
   return (
     <header className="bg-primary/10 border-b border-primary/20 p-4 shadow-md sticky top-0 z-40 backdrop-blur-sm">
       <div className="container mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
           <h1 className="text-3xl font-headline font-bold text-primary">
             PromptEval Pro
           </h1>
-          <Badge variant="secondary" className="hidden sm:flex">
+          <Badge variant="outline" className="mt-1 sm:mt-0 border-primary/50 text-primary self-start sm:self-auto">
             {modeMap[runMode]}
           </Badge>
         </div>
