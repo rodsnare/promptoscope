@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -9,7 +10,7 @@ import { MessageSquare } from 'lucide-react';
 
 interface InteractiveModeProps {
   history: ConversationTurn[];
-  onSubmitPrompt: (prompt: string) => Promise<void>;
+  onSubmitPrompt: (prompt: { prompt: string }) => Promise<void>;
   isLoading: boolean;
 }
 

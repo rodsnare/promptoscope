@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef } from 'react';
@@ -7,7 +8,7 @@ import { Send } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 interface PromptInputFormProps {
-  onSubmit: (prompt: string) => void;
+  onSubmit: (prompt: { prompt: string }) => void;
   isLoading: boolean;
 }
 
@@ -18,7 +19,7 @@ const PromptInputForm: React.FC<PromptInputFormProps> = ({ onSubmit, isLoading }
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim()) {
-      onSubmit(prompt.trim());
+      onSubmit({ prompt: prompt.trim() });
       setPrompt('');
     }
   };

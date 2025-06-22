@@ -170,10 +170,10 @@ export default function Home() {
     return template.replace(/\{\{prompt\}\}/g, userPrompt);
   };
 
-  const handleInteractiveSubmit = async (userInput: string) => {
+  const handleInteractiveSubmit = async (userInput: { prompt: string }) => {
     setIsLoading(true);
     try {
-      const userPromptForState = forceStringOrVerySpecificPlaceholder(userInput, 'UserPrompt_Interactive');
+      const userPromptForState = forceStringOrVerySpecificPlaceholder(userInput.prompt, 'UserPrompt_Interactive');
 
       let responseA: string | null = null;
       let responseB: string | null = null;
@@ -254,7 +254,7 @@ export default function Home() {
   };
 
   const handleProcessBatch = async (fileContent: BatchFileItem[]) => {
-    setBatchIsLoading(true);
+    setBatchIsLg(true);
     // setBatchResults([]); // No longer reset here, results are accumulated first.
     setBatchProgress(0);
     setIsCancelling(false);
@@ -390,7 +390,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    

@@ -22,13 +22,6 @@ const EvaluateResponseInputSchema = z.object({
 });
 export type EvaluateResponseInput = z.infer<typeof EvaluateResponseInputSchema>;
 
-// This schema defines the specific data structure for the evaluation prompt template.
-const PromptInputDataSchema = z.object({
-  prompt: z.string().describe('The original user prompt that was submitted to the models.'),
-  responseA: z.string().nullable().describe('The response from model A. Can be null if not generated.'),
-  responseB: z.string().nullable().describe('The response from model B. Can be null if not generated.'),
-});
-
 const EvaluateResponseOutputSchema = z.object({
   evaluation: z.string().describe('The evaluation of the responses from the evaluator LLM.'),
   error: z.string().optional().describe('An error message if the evaluation failed.'),
@@ -56,27 +49,23 @@ const evaluateResponseFlow = ai.defineFlow(
         Object.entries(restOfConfig).filter(([_, v]) => v !== undefined && v !== null)
       );
 
-      const evaluatorPrompt = ai.definePrompt({
-          name: 'runtimeEvaluateResponsePrompt',
-          // Use the new, more specific schema for the prompt's input.
-          input: { schema: PromptInputDataSchema },
-          // This output schema is for the prompt's structured output.
-          output: { schema: z.object({ evaluation: z.string() }) },
-          prompt: input.evaluatorPromptTemplate,
-          model: prefixedModel, // Use prefixed model from config
-          config: cleanedEvaluatorApiConfig, // Use the cleaned config
-      });
-
-      // Pass only the data that the prompt template requires.
-      const evaluatorPromptResult = await evaluatorPrompt({
+      const response = await ai.generate({
+        prompt: input.evaluatorPromptTemplate,
+        model: prefixedModel,
+        config: cleanedEvaluatorApiConfig,
+        input: {
           prompt: input.prompt,
           responseA: input.responseA,
           responseB: input.responseB,
+        },
+        output: {
+          schema: z.object({ evaluation: z.string() }),
+        }
       });
-
-      const output = evaluatorPromptResult.output;
-      const rawText = evaluatorPromptResult.text; 
-      const usage = evaluatorPromptResult.usage;
+      
+      const output = response.output;
+      const rawText = response.text; 
+      const usage = response.usage;
 
       if (output && typeof output.evaluation === 'string') {
           return { evaluation: output.evaluation };
@@ -100,7 +89,7 @@ const evaluateResponseFlow = ai.defineFlow(
           return { evaluation: '', error: detail };
       }
     } catch (e: any) {
-      console.error("Error in evaluateResponseFlow's prompt execution or subsequent processing:", e); 
+      console.error("Error in evaluateResponseFlow's execution:", e); 
       const errorMessage = e?.message ?? 'An unknown error occurred during the evaluation flow.';
       return { evaluation: '', error: String(errorMessage) };
     }
