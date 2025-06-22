@@ -4,7 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'PromtoScope',
+  title: 'PromptoScope',
   description: 'Evaluate and Compare LLM Prompts',
 };
 

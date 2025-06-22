@@ -22,7 +22,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ runMode }) => {
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
           <h1 className="text-3xl font-headline font-bold text-primary">
-            PromtoScope
+            PromptoScope
           </h1>
           <Badge variant="outline" className="mt-1 sm:mt-0 border-primary/50 text-primary self-start sm:self-auto">
             {modeMap[runMode]}

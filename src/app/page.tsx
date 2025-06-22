@@ -138,7 +138,7 @@ export default function Home() {
     setIsClient(true);
     // Load config from localStorage on initial client mount
     try {
-      const savedConfigJSON = localStorage.getItem('promotoscopeConfig');
+      const savedConfigJSON = localStorage.getItem('promptoscopeConfig');
       if (savedConfigJSON) {
         const savedConfig = JSON.parse(savedConfigJSON);
         setAppConfig(savedConfig);
@@ -153,7 +153,7 @@ export default function Home() {
     // Only run on client and after initial mount
     if (isClient) {
       try {
-        localStorage.setItem('promotoscopeConfig', JSON.stringify(appConfig));
+        localStorage.setItem('promptoscopeConfig', JSON.stringify(appConfig));
       } catch (error) {
         console.error('Error saving config to localStorage:', error);
       }
@@ -254,7 +254,7 @@ export default function Home() {
   };
 
   const handleProcessBatch = async (fileContent: BatchFileItem[]) => {
-    setBatchIsLg(true);
+    setBatchIsLoading(true);
     // setBatchResults([]); // No longer reset here, results are accumulated first.
     setBatchProgress(0);
     setIsCancelling(false);
