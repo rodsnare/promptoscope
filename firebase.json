@@ -2,6 +2,7 @@
 {
   "apphosting": {
     "source": ".",
+    "backend": "prompteval-pro-backend",
     "ignore": [
       "firebase.json",
       "**/.*",

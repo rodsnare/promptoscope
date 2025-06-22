@@ -1,9 +1,8 @@
-
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
 # The name of the backend. This must be unique within the project.
-backendId: promptoscope
+backendId: prompteval-pro-backend
 
 # The region to deploy the backend to.
 # See https://firebase.google.com/docs/app-hosting/locations
