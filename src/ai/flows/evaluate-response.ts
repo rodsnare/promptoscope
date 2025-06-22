@@ -49,18 +49,29 @@ const evaluateResponseFlow = ai.defineFlow(
         Object.entries(restOfConfig).filter(([_, v]) => v !== undefined && v !== null)
       );
 
-      const response = await ai.generate({
-        prompt: input.evaluatorPromptTemplate,
-        model: prefixedModel,
-        config: cleanedEvaluatorApiConfig,
-        input: {
+      // Define a runtime prompt to ensure all template variables are handled correctly.
+      const evaluatorPrompt = ai.definePrompt({
+          name: 'runtimeEvaluatorPrompt',
+          prompt: input.evaluatorPromptTemplate, // The full template string
+          model: prefixedModel,
+          config: cleanedEvaluatorApiConfig,
+          input: {
+              schema: z.object({
+                  userPrompt: z.string(),
+                  responseA: z.string().nullable(),
+                  responseB: z.string().nullable(),
+              }),
+          },
+          output: {
+              schema: z.object({ evaluation: z.string() }),
+          },
+      });
+      
+      // Call the prompt with the precise data structure.
+      const response = await evaluatorPrompt({
           userPrompt: input.prompt,
           responseA: input.responseA,
           responseB: input.responseB,
-        },
-        output: {
-          schema: z.object({ evaluation: z.string() }),
-        }
       });
       
       const output = response.output;
