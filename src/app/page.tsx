@@ -16,12 +16,6 @@ import { generateText } from '@/ai/flows/generate-text-flow'; // Import the new 
 import type { AppConfig, ConversationTurn, ProcessedBatchItem, EvaluationMode, BatchFileItem, EvaluationRunMode, ApiConfig, ModelProcessingConfig, EvaluatorConfig } from '@/types';
 import { Sheet } from '@/components/ui/sheet';
 
-// Log the hosting URL on the server side
-if (typeof window === 'undefined') {
-  console.log(`Server started. App Hosting URL should be: https://${process.env.APP_ID}.web.app`);
-}
-
-
 const defaultApiConfig: ApiConfig = {
   model: 'gemini-2.0-flash',
   temperature: 0.7,
