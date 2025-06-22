@@ -217,7 +217,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ config, onConfi
                     className="mt-1 min-h-[120px] font-code"
                     rows={5}
                   />
-                  <div className="text-sm text-muted-foreground mt-1">{'Use {{prompt}}, {{responseA}}, and {{responseB}} (optional) placeholders.'}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{'Use {{userPrompt}}, {{responseA}}, and {{responseB}} (optional) placeholders.'}</div>
                 </div>
                 {renderApiConfigFields('evaluatorConfig.apiConfig', config.evaluatorConfig.apiConfig)}
               </AccordionContent>

@@ -54,7 +54,7 @@ const evaluateResponseFlow = ai.defineFlow(
         model: prefixedModel,
         config: cleanedEvaluatorApiConfig,
         input: {
-          prompt: input.prompt,
+          userPrompt: input.prompt,
           responseA: input.responseA,
           responseB: input.responseB,
         },
