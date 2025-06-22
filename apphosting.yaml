@@ -1,7 +1,20 @@
+
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
+# The name of the backend. This must be unique within the project.
+backendId: promptoscope
+
+# The region to deploy the backend to.
+# See https://firebase.google.com/docs/app-hosting/locations
+region: us-central1
+
+# The runtime to use for the backend. For Next.js, this is node.
+# See https://firebase.google.com/docs/app-hosting/supported-runtimes
+runtime: nodejs20
+
+# Optional: settings for scaling the backend.
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
+  # Increase this value to automatically spin up more instances in
+  # response to increased traffic.
+  maxInstances: 2
